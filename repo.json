@@ -3,7 +3,7 @@
     "Author": "lapinwhimsical",
     "Name": "CarrotPatch",
     "InternalName": "CarrotPatch",
-    "AssemblyVersion": "1.0.0.0",
+    "AssemblyVersion": "1.0.1.0",
     "Description": "A small collection of whimsical tools and experiments for FFXIV.",
     "Punchline": "Planting ideas, one carrot at a time.",
     "RepoUrl": "https://github.com/lapinwhimsical/CarrotPatch",
@@ -11,8 +11,8 @@
     "DalamudApiLevel": 15,
     "IsHide": false,
     "IsTestingExclusive": false,
-    "DownloadLinkInstall": "https://github.com/lapinwhimsical/CarrotPatch/releases/download/v1.0.0/CarrotPatch.zip",
-    "DownloadLinkUpdate": "https://github.com/lapinwhimsical/CarrotPatch/releases/download/v1.0.0/CarrotPatch.zip",
-    "LastUpdate": "1710000000"
+    "DownloadLinkInstall": "https://github.com/lapinwhimsical/CarrotPatch/releases/download/v1.0.1/CarrotPatch.zip",
+    "DownloadLinkUpdate": "https://github.com/lapinwhimsical/CarrotPatch/releases/download/v1.0.1/CarrotPatch.zip",
+    "LastUpdate": "1781035200"
   }
 ]
