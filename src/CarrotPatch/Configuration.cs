@@ -12,7 +12,7 @@ public sealed class Configuration : IPluginConfiguration
 
     public bool RabbitEarsEnabled { get; set; } = true;
 
-    public int MaxActiveBeacons { get; set; } = 3;
+    public int MaxActiveBeacons { get; set; } = ConfigurationDefaults.MaxActiveBeacons;
 
     public int BeaconDurationSeconds { get; set; } = 15;
 
@@ -30,9 +30,11 @@ public sealed class Configuration : IPluginConfiguration
 
     public float OverheadBackgroundOpacity { get; set; } = 0.85f;
 
-    public bool ShowChatMessage { get; set; } = true;
+    public float OverheadForegroundOpacity { get; set; } = 1f;
 
-    public bool ShowOnlyLatestSignalPerPlayer { get; set; } = true;
+    public bool ShowChatMessage { get; set; } = ConfigurationDefaults.ShowChatMessage;
+
+    public bool ShowOnlyLatestSignalPerPlayer { get; set; } = ConfigurationDefaults.ShowOnlyLatestSignalPerPlayer;
 
     public bool SuppressAlertsFromPartyMembers { get; set; }
 
@@ -51,4 +53,11 @@ public sealed class Configuration : IPluginConfiguration
     {
         this.pluginInterface?.SavePluginConfig(this);
     }
+}
+
+public static class ConfigurationDefaults
+{
+    public const int MaxActiveBeacons = 10;
+    public const bool ShowChatMessage = false;
+    public const bool ShowOnlyLatestSignalPerPlayer = true;
 }

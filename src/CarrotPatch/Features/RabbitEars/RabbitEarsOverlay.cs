@@ -73,7 +73,8 @@ public sealed class RabbitEarsOverlay
             beacon.HasTell,
             beacon.IsManualMarker,
             scale,
-            this.configuration.OverheadBackgroundOpacity);
+            this.configuration.OverheadBackgroundOpacity,
+            this.configuration.OverheadForegroundOpacity);
 
         return true;
     }

@@ -20,7 +20,8 @@ public static class RabbitEarsMarkerRenderer
         bool hasTell,
         bool isManualMarker,
         float scale,
-        float backgroundOpacity)
+        float backgroundOpacity,
+        float foregroundOpacity)
     {
         const string TargetingLabel = "TARGETING";
         const string TellLabel = "TELL";
@@ -48,7 +49,10 @@ public static class RabbitEarsMarkerRenderer
         var boxMin = new Vector2(screenPosition.X - (maxWidth / 2f) - padding.X, screenPosition.Y - totalHeight - (34f * clampedScale));
         var boxMax = new Vector2(screenPosition.X + (maxWidth / 2f) + padding.X, boxMin.Y + totalHeight + (padding.Y * 2f));
         var center = new Vector2(screenPosition.X, boxMax.Y + (9f * clampedScale));
-        var color = ImGui.GetColorU32(MarkerColor);
+        var clampedForegroundOpacity = RabbitEarsOptions.ClampOverheadForegroundOpacity(foregroundOpacity);
+        var color = ImGui.GetColorU32(WithAlpha(MarkerColor, clampedForegroundOpacity));
+        var targetingColor = ImGui.GetColorU32(WithAlpha(TargetingColor, clampedForegroundOpacity));
+        var disabledColor = ImGui.GetColorU32(WithAlpha(DisabledColor, DisabledColor.W * clampedForegroundOpacity));
         var shadow = ImGui.GetColorU32(WithAlpha(ShadowColor, RabbitEarsOptions.ClampOverheadBackgroundOpacity(backgroundOpacity)));
         var rounding = 4f * clampedScale;
 
@@ -68,29 +72,29 @@ public static class RabbitEarsMarkerRenderer
         var statusStart = new Vector2(screenPosition.X - (statusSize.X / 2f), cursor.Y);
         drawList.AddText(
             statusStart,
-            ImGui.GetColorU32(isTargeting ? TargetingColor : DisabledColor),
+            isTargeting ? targetingColor : disabledColor,
             TargetingLabel);
         drawList.AddText(
             new Vector2(statusStart.X + targetingSize.X + gapSize.X, cursor.Y),
-            ImGui.GetColorU32(hasTell ? TargetingColor : DisabledColor),
+            hasTell ? targetingColor : disabledColor,
             TellLabel);
         drawList.AddText(
             new Vector2(statusStart.X + targetingSize.X + gapSize.X + tellSize.X + gapSize.X, cursor.Y),
-            ImGui.GetColorU32(isManualMarker ? TargetingColor : DisabledColor),
+            isManualMarker ? targetingColor : disabledColor,
             MarkerLabel);
         cursor.Y += statusSize.Y;
 
         var senderSize = ImGui.CalcTextSize(senderName);
         drawList.AddText(
             new Vector2(screenPosition.X - (senderSize.X / 2f), cursor.Y),
-            ImGui.GetColorU32(MarkerColor),
+            color,
             senderName);
         cursor.Y += senderSize.Y;
 
         var detailSize = ImGui.CalcTextSize(detailLine);
         drawList.AddText(
             new Vector2(screenPosition.X - (detailSize.X / 2f), cursor.Y),
-            ImGui.GetColorU32(MarkerColor),
+            color,
             detailLine);
     }
 

@@ -188,6 +188,13 @@ public sealed class SettingsWindow
             this.configuration.Save();
         }
 
+        var overheadForegroundOpacity = RabbitEarsOptions.ClampOverheadForegroundOpacity(this.configuration.OverheadForegroundOpacity);
+        if (ImGui.SliderFloat("Overhead text/border opacity", ref overheadForegroundOpacity, RabbitEarsOptions.MinimumOverheadForegroundOpacity, RabbitEarsOptions.MaximumOverheadForegroundOpacity, "%.2f"))
+        {
+            this.configuration.OverheadForegroundOpacity = RabbitEarsOptions.ClampOverheadForegroundOpacity(overheadForegroundOpacity);
+            this.configuration.Save();
+        }
+
         ImGui.Checkbox("Show overhead preview", ref this.showOverheadPreview);
         if (this.showOverheadPreview)
         {
@@ -222,19 +229,41 @@ public sealed class SettingsWindow
 
     private void DrawOverheadPreview()
     {
-        var previewTopLeft = ImGui.GetCursorScreenPos() + new Vector2(0f, 78f);
-        var previewSize = new Vector2(MathF.Max(360f, ImGui.GetContentRegionAvail().X), 120f);
+        var previewTopLeft = ImGui.GetCursorScreenPos();
+        var previewSize = new Vector2(MathF.Max(360f, ImGui.GetContentRegionAvail().X), 150f);
+        var previewBottomRight = previewTopLeft + previewSize;
         var drawList = ImGui.GetWindowDrawList();
+
+        var skyBottom = previewTopLeft + new Vector2(previewSize.X, 92f);
+        drawList.AddRectFilled(
+            previewTopLeft,
+            skyBottom,
+            ImGui.GetColorU32(new Vector4(0.68f, 0.77f, 0.82f, 1f)),
+            4f,
+            ImDrawFlags.RoundCornersTop);
+        drawList.AddRectFilled(
+            new Vector2(previewTopLeft.X, skyBottom.Y),
+            previewBottomRight,
+            ImGui.GetColorU32(new Vector4(0.35f, 0.43f, 0.35f, 1f)),
+            4f,
+            ImDrawFlags.RoundCornersBottom);
+        drawList.AddRect(
+            previewTopLeft,
+            previewBottomRight,
+            ImGui.GetColorU32(new Vector4(1f, 1f, 1f, 0.28f)),
+            4f);
+
         RabbitEarsMarkerRenderer.Draw(
             drawList,
-            previewTopLeft + new Vector2(previewSize.X / 2f, 92f),
+            previewTopLeft + new Vector2(previewSize.X / 2f, 118f),
             "Preview Player",
             "12y  15s",
             isTargeting: true,
             hasTell: true,
             isManualMarker: false,
             this.configuration.MarkerScale,
-            this.configuration.OverheadBackgroundOpacity);
+            this.configuration.OverheadBackgroundOpacity,
+            this.configuration.OverheadForegroundOpacity);
 
         ImGui.Dummy(previewSize);
     }
