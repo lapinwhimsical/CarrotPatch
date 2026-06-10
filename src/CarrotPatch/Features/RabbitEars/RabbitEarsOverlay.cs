@@ -9,6 +9,7 @@ public sealed class RabbitEarsOverlay
 {
     private static readonly Vector4 MarkerColor = new(1f, 0.9f, 0.1f, 1f);
     private static readonly Vector4 TargetingColor = new(1f, 0.15f, 0.1f, 1f);
+    private static readonly Vector4 DisabledColor = new(0.55f, 0.55f, 0.55f, 0.85f);
     private static readonly Vector4 ShadowColor = new(0f, 0f, 0f, 0.85f);
 
     private readonly RabbitEarsService rabbitEarsService;
@@ -60,24 +61,25 @@ public sealed class RabbitEarsOverlay
             return false;
 
         var drawList = ImGui.GetForegroundDrawList();
-        var statusLine = beacon.IsTargeting
-            ? "TARGETING"
-            : "Tell";
+        const string TargetingLabel = "TARGETING";
+        const string TellLabel = "TELL";
+        const string StatusGap = "  ";
+        var statusLine = $"{TargetingLabel}{StatusGap}{TellLabel}";
         var detailLine = beacon.IsTargeting
-            ? $"{MathF.Round(beacon.Distance)}y {beacon.DirectionText}"
-            : $"{MathF.Round(beacon.Distance)}y {beacon.DirectionText}  {beacon.SecondsRemaining}s";
-        var lines = new (string Text, Vector4 Color)[]
+            ? $"{MathF.Round(beacon.Distance)}y"
+            : $"{MathF.Round(beacon.Distance)}y  {beacon.SecondsRemaining}s";
+        var lines = new[]
         {
-            (statusLine, beacon.IsTargeting ? TargetingColor : MarkerColor),
-            (beacon.SenderName, MarkerColor),
-            (detailLine, MarkerColor),
+            statusLine,
+            beacon.SenderName,
+            detailLine,
         };
 
         var maxWidth = 0f;
         var totalHeight = 0f;
         foreach (var line in lines)
         {
-            var size = ImGui.CalcTextSize(line.Text);
+            var size = ImGui.CalcTextSize(line);
             maxWidth = MathF.Max(maxWidth, size.X);
             totalHeight += size.Y;
         }
@@ -98,15 +100,33 @@ public sealed class RabbitEarsOverlay
             color);
 
         var cursor = boxMin + padding;
-        foreach (var line in lines)
-        {
-            var size = ImGui.CalcTextSize(line.Text);
-            drawList.AddText(
-                new Vector2(screenPosition.X - (size.X / 2f), cursor.Y),
-                ImGui.GetColorU32(line.Color),
-                line.Text);
-            cursor.Y += size.Y;
-        }
+        var statusSize = ImGui.CalcTextSize(statusLine);
+        var targetingSize = ImGui.CalcTextSize(TargetingLabel);
+        var gapSize = ImGui.CalcTextSize(StatusGap);
+        var tellSize = ImGui.CalcTextSize(TellLabel);
+        var statusStart = new Vector2(screenPosition.X - (statusSize.X / 2f), cursor.Y);
+        drawList.AddText(
+            statusStart,
+            ImGui.GetColorU32(beacon.IsTargeting ? TargetingColor : DisabledColor),
+            TargetingLabel);
+        drawList.AddText(
+            new Vector2(statusStart.X + targetingSize.X + gapSize.X, cursor.Y),
+            ImGui.GetColorU32(beacon.HasTell ? TargetingColor : DisabledColor),
+            TellLabel);
+        cursor.Y += statusSize.Y;
+
+        var senderSize = ImGui.CalcTextSize(beacon.SenderName);
+        drawList.AddText(
+            new Vector2(screenPosition.X - (senderSize.X / 2f), cursor.Y),
+            ImGui.GetColorU32(MarkerColor),
+            beacon.SenderName);
+        cursor.Y += senderSize.Y;
+
+        var detailSize = ImGui.CalcTextSize(detailLine);
+        drawList.AddText(
+            new Vector2(screenPosition.X - (detailSize.X / 2f), cursor.Y),
+            ImGui.GetColorU32(MarkerColor),
+            detailLine);
 
         return true;
     }
@@ -129,13 +149,15 @@ public sealed class RabbitEarsOverlay
 
         foreach (var beacon in this.rabbitEarsService.ActiveBeacons)
         {
-            ImGui.TextColored(beacon.IsTargeting ? TargetingColor : MarkerColor, beacon.IsTargeting ? "TARGETING" : "Tell");
+            ImGui.TextColored(beacon.IsTargeting ? TargetingColor : DisabledColor, "TARGETING");
+            ImGui.SameLine();
+            ImGui.TextColored(beacon.HasTell ? TargetingColor : DisabledColor, "TELL");
             ImGui.SameLine();
             ImGui.TextColored(MarkerColor, beacon.SenderName);
             ImGui.SameLine();
             ImGui.TextDisabled(beacon.IsTargeting
-                ? $"{MathF.Round(beacon.Distance)}y {beacon.DirectionText}"
-                : $"{MathF.Round(beacon.Distance)}y {beacon.DirectionText}  {beacon.SecondsRemaining}s");
+                ? $"{MathF.Round(beacon.Distance)}y"
+                : $"{MathF.Round(beacon.Distance)}y  {beacon.SecondsRemaining}s");
         }
 
         ImGui.End();

@@ -14,6 +14,7 @@ public sealed class RabbitEarsService : IDisposable
     private readonly IFramework framework;
     private readonly IPluginLog pluginLog;
     private readonly Configuration configuration;
+    private readonly NotificationSoundPlayer notificationSoundPlayer;
     private readonly List<ActiveBeacon> activeBeacons = [];
 
     public RabbitEarsService(
@@ -21,13 +22,15 @@ public sealed class RabbitEarsService : IDisposable
         IObjectTable objectTable,
         IFramework framework,
         IPluginLog pluginLog,
-        Configuration configuration)
+        Configuration configuration,
+        NotificationSoundPlayer notificationSoundPlayer)
     {
         this.chatGui = chatGui;
         this.objectTable = objectTable;
         this.framework = framework;
         this.pluginLog = pluginLog;
         this.configuration = configuration;
+        this.notificationSoundPlayer = notificationSoundPlayer;
 
         this.chatGui.ChatMessageUnhandled += this.OnChatMessage;
         this.framework.Update += this.OnFrameworkUpdate;
@@ -78,19 +81,15 @@ public sealed class RabbitEarsService : IDisposable
             return;
         }
 
-        var beacon = this.UpsertBeacon(
+        this.UpsertBeacon(
             tellInfo.SenderName,
             tellInfo.SenderWorld,
             match,
             localPlayer,
             DateTime.UtcNow,
             moveToFront: true,
-            isTargeting: this.configuration.TargetAlertsEnabled && IsTargetingLocalPlayer(match, localPlayer));
-
-        if (this.configuration.ShowChatMessage)
-        {
-            this.chatGui.Print($"Rabbit Ears: Tell from {tellInfo.SenderName} - {MathF.Round(beacon.Distance)}y {beacon.DirectionText}");
-        }
+            isTargeting: this.configuration.TargetAlertsEnabled && IsTargetingLocalPlayer(match, localPlayer),
+            hasTell: true);
     }
 
     private void OnFrameworkUpdate(IFramework framework)
@@ -122,7 +121,6 @@ public sealed class RabbitEarsService : IDisposable
             beacon.GameObjectId = gameObject.GameObjectId;
             beacon.LastKnownPosition = gameObject.Position;
             beacon.Distance = DirectionHelper.Distance(localPlayer.Position, gameObject.Position);
-            beacon.DirectionText = DirectionHelper.CardinalDirection(localPlayer.Position, gameObject.Position);
 
             var isStillTargeting = targeterIds.Contains(gameObject.GameObjectId);
             if (isStillTargeting)
@@ -164,7 +162,8 @@ public sealed class RabbitEarsService : IDisposable
                 localPlayer,
                 now,
                 moveToFront: existing is null || !existing.IsTargeting,
-                isTargeting: true);
+                isTargeting: true,
+                hasTell: false);
         }
 
         return targeterIds;
@@ -177,7 +176,8 @@ public sealed class RabbitEarsService : IDisposable
         IGameObject localPlayer,
         DateTime now,
         bool moveToFront,
-        bool isTargeting)
+        bool isTargeting,
+        bool hasTell)
     {
         var beacon = this.FindExistingBeacon(gameObject)
             ?? this.activeBeacons.FirstOrDefault(existing =>
@@ -197,6 +197,10 @@ public sealed class RabbitEarsService : IDisposable
             };
 
             this.activeBeacons.Insert(0, beacon);
+            if (this.configuration.PlaySoundOnOverlayMarker)
+            {
+                this.notificationSoundPlayer.Play();
+            }
         }
         else if (moveToFront)
         {
@@ -207,13 +211,18 @@ public sealed class RabbitEarsService : IDisposable
         beacon.GameObjectId = gameObject.GameObjectId;
         beacon.LastKnownPosition = gameObject.Position;
         beacon.Distance = DirectionHelper.Distance(localPlayer.Position, gameObject.Position);
-        beacon.DirectionText = DirectionHelper.CardinalDirection(localPlayer.Position, gameObject.Position);
         beacon.ExpiresAt = GetExpiresAt(now, this.configuration.BeaconDurationSeconds);
 
         if (isTargeting)
         {
             beacon.IsTargeting = true;
             beacon.LastSeenTargetingAt = now;
+        }
+
+        if (hasTell)
+        {
+            beacon.HasTell = true;
+            beacon.LastTellAt = now;
         }
 
         this.TrimActiveBeacons();

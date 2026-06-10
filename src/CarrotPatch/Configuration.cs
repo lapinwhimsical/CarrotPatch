@@ -20,6 +20,8 @@ public sealed class Configuration : IPluginConfiguration
 
     public bool ShowOverlayMarker { get; set; } = true;
 
+    public bool PlaySoundOnOverlayMarker { get; set; } = true;
+
     public bool ShowChatMessage { get; set; } = true;
 
     public bool DebugMode { get; set; }

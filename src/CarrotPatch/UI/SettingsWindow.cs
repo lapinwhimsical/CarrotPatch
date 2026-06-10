@@ -66,6 +66,13 @@ public sealed class SettingsWindow
             this.configuration.Save();
         }
 
+        var playSoundOnOverlayMarker = this.configuration.PlaySoundOnOverlayMarker;
+        if (ImGui.Checkbox("Play sound when marker appears", ref playSoundOnOverlayMarker))
+        {
+            this.configuration.PlaySoundOnOverlayMarker = playSoundOnOverlayMarker;
+            this.configuration.Save();
+        }
+
         var showChatMessage = this.configuration.ShowChatMessage;
         if (ImGui.Checkbox("Show chat confirmation", ref showChatMessage))
         {

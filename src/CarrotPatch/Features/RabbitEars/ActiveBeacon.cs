@@ -23,9 +23,11 @@ public sealed class ActiveBeacon
 
     public DateTime? LastSeenTargetingAt { get; set; }
 
-    public float Distance { get; set; }
+    public bool HasTell { get; set; }
 
-    public string DirectionText { get; set; } = string.Empty;
+    public DateTime? LastTellAt { get; set; }
+
+    public float Distance { get; set; }
 
     public int SecondsRemaining => Math.Max(0, (int)Math.Ceiling((this.ExpiresAt - DateTime.UtcNow).TotalSeconds));
 }
