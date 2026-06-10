@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.Text.RegularExpressions;
 
 namespace CarrotPatch.Features.RabbitEars;
@@ -36,11 +37,36 @@ public static partial class TellParserCore
     private static string CleanSender(string value)
     {
         var cleaned = value.Trim();
-        cleaned = cleaned.TrimStart('\ue090').Trim();
+        cleaned = TrimLeadingNameMarkers(cleaned).Trim();
         cleaned = cleaned.Trim('<', '>', '[', ']', ' ');
+        cleaned = TrimLeadingNameMarkers(cleaned).Trim();
 
         return CollapseWhitespaceRegex().Replace(cleaned, " ");
     }
+
+    private static string TrimLeadingNameMarkers(string value)
+    {
+        var trimStart = 0;
+        while (trimStart < value.Length)
+        {
+            var category = CharUnicodeInfo.GetUnicodeCategory(value, trimStart);
+            if (!IsNameMarkerCategory(category))
+                break;
+
+            trimStart += char.IsSurrogatePair(value, trimStart) ? 2 : 1;
+        }
+
+        return trimStart == 0
+            ? value
+            : value[trimStart..];
+    }
+
+    private static bool IsNameMarkerCategory(UnicodeCategory category)
+        => category is UnicodeCategory.PrivateUse
+            or UnicodeCategory.MathSymbol
+            or UnicodeCategory.CurrencySymbol
+            or UnicodeCategory.ModifierSymbol
+            or UnicodeCategory.OtherSymbol;
 
     private static (string Name, string? World) SplitNameAndWorld(string senderText)
     {

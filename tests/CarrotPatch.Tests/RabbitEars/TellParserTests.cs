@@ -34,6 +34,38 @@ public sealed class TellParserTests
     }
 
     [Theory]
+    [InlineData("♥Remilodie Bresia")]
+    [InlineData("★Remilodie Bresia")]
+    [InlineData("●Remilodie Bresia")]
+    [InlineData("\ue090Remilodie Bresia")]
+    public void TryParseIncomingTell_StripsLeadingFriendGroupMarker(string sender)
+    {
+        var parsed = TellParserCore.TryParseIncomingTell(
+            isIncomingTell: true,
+            sender,
+            localPlayerName: null,
+            out var tellInfo);
+
+        Assert.True(parsed);
+        Assert.Equal("Remilodie Bresia", tellInfo.SenderName);
+        Assert.Null(tellInfo.SenderWorld);
+    }
+
+    [Fact]
+    public void TryParseIncomingTell_StripsLeadingFriendGroupMarkerBeforeWorld()
+    {
+        var parsed = TellParserCore.TryParseIncomingTell(
+            isIncomingTell: true,
+            "♥Remilodie Bresia @ Cactuar",
+            localPlayerName: null,
+            out var tellInfo);
+
+        Assert.True(parsed);
+        Assert.Equal("Remilodie Bresia", tellInfo.SenderName);
+        Assert.Equal("Cactuar", tellInfo.SenderWorld);
+    }
+
+    [Theory]
     [InlineData("")]
     [InlineData("   ")]
     [InlineData("[]")]
