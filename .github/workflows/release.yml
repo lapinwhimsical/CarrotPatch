@@ -1,0 +1,102 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Version bump to apply when exact version is not provided.
+        required: true
+        default: patch
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+      version:
+        description: Optional exact SemVer version, such as 1.2.3.
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build and publish release
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Configure Git
+        shell: pwsh
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Bootstrap Dalamud
+        shell: pwsh
+        run: |
+          $dalamudZip = Join-Path $env:RUNNER_TEMP 'dalamud.zip'
+          $dalamudHome = Join-Path $env:RUNNER_TEMP 'dalamud'
+
+          Invoke-WebRequest `
+            -Uri 'https://goatcorp.github.io/dalamud-distrib/stg/latest.zip' `
+            -OutFile $dalamudZip `
+            -UseBasicParsing
+
+          New-Item -ItemType Directory -Path $dalamudHome -Force | Out-Null
+          Expand-Archive -Path $dalamudZip -DestinationPath $dalamudHome -Force
+
+          "DALAMUD_HOME=$dalamudHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Update release metadata
+        id: metadata
+        shell: pwsh
+        run: |
+          powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\release\Update-ReleaseMetadata.ps1 `
+            -Bump '${{ inputs.bump }}' `
+            -Version '${{ inputs.version }}'
+
+      - name: Build Release
+        run: dotnet build .\src\CarrotPatch\CarrotPatch.csproj -c Release -p:Platform=x64
+
+      - name: Prepare release asset
+        shell: pwsh
+        run: |
+          $packagePath = 'src/CarrotPatch/bin/x64/Release/CarrotPatch/latest.zip'
+          if (-not (Test-Path $packagePath)) {
+            throw "Expected package was not created: $packagePath"
+          }
+
+          Copy-Item -Path $packagePath -Destination 'CarrotPatch.zip' -Force
+
+          $entries = tar -tf CarrotPatch.zip
+          foreach ($requiredEntry in @('CarrotPatch.dll', 'CarrotPatch.deps.json', 'CarrotPatch.json')) {
+            if ($entries -notcontains $requiredEntry) {
+              throw "Package is missing required entry: $requiredEntry"
+            }
+          }
+
+      - name: Commit and tag release
+        shell: pwsh
+        run: |
+          git add src/CarrotPatch/CarrotPatch.csproj src/CarrotPatch/CarrotPatch.json repo.json
+          git commit -m "Release ${{ steps.metadata.outputs.tag }}"
+          git tag ${{ steps.metadata.outputs.tag }}
+          git push origin HEAD:main
+          git push origin ${{ steps.metadata.outputs.tag }}
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create ${{ steps.metadata.outputs.tag }} CarrotPatch.zip --title ${{ steps.metadata.outputs.tag }} --generate-notes

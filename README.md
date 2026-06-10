@@ -56,15 +56,16 @@ CarrotPatch unloaded.
 
 ## Publish a Release
 
-1. Push the repository to GitHub at `https://github.com/lapinwhimsical/CarrotPatch`.
-2. Create a GitHub Release named `v1.0.0`.
-3. Package the plugin release artifact as `CarrotPatch.zip`.
-4. Upload `CarrotPatch.zip` to the `v1.0.0` release.
-5. Confirm `repo.json` points to:
+Releases are automated with GitHub Actions.
 
-```text
-https://github.com/lapinwhimsical/CarrotPatch/releases/download/v1.0.0/CarrotPatch.zip
-```
+1. Open the `Release` workflow in GitHub Actions.
+2. Select `Run workflow`.
+3. Choose `patch`, `minor`, or `major`, or enter an exact `X.Y.Z` version.
+4. Run the workflow from `main`.
+
+The workflow updates release metadata, commits the version bump, tags
+`vX.Y.Z`, builds the Dalamud package, uploads `CarrotPatch.zip` to the GitHub
+Release, and generates release notes from GitHub history.
 
 ## Custom Plugin Repository
 

@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    name: Build plugin
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Bootstrap Dalamud
+        shell: pwsh
+        run: |
+          $dalamudZip = Join-Path $env:RUNNER_TEMP 'dalamud.zip'
+          $dalamudHome = Join-Path $env:RUNNER_TEMP 'dalamud'
+
+          Invoke-WebRequest `
+            -Uri 'https://goatcorp.github.io/dalamud-distrib/stg/latest.zip' `
+            -OutFile $dalamudZip `
+            -UseBasicParsing
+
+          New-Item -ItemType Directory -Path $dalamudHome -Force | Out-Null
+          Expand-Archive -Path $dalamudZip -DestinationPath $dalamudHome -Force
+
+          "DALAMUD_HOME=$dalamudHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Build Release
+        run: dotnet build .\src\CarrotPatch\CarrotPatch.csproj -c Release -p:Platform=x64
+
+      - name: Verify package
+        shell: pwsh
+        run: |
+          $packagePath = 'src/CarrotPatch/bin/x64/Release/CarrotPatch/latest.zip'
+          if (-not (Test-Path $packagePath)) {
+            throw "Expected package was not created: $packagePath"
+          }
+
+          $entries = tar -tf $packagePath
+          foreach ($requiredEntry in @('CarrotPatch.dll', 'CarrotPatch.deps.json', 'CarrotPatch.json')) {
+            if ($entries -notcontains $requiredEntry) {
+              throw "Package is missing required entry: $requiredEntry"
+            }
+          }
