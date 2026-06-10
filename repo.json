@@ -3,7 +3,7 @@
       "Author":  "lapinwhimsical",
       "Name":  "CarrotPatch",
       "InternalName":  "CarrotPatch",
-      "AssemblyVersion":  "1.0.4.0",
+      "AssemblyVersion":  "1.0.5.0",
       "Description":  "A small collection of whimsical tools and experiments for FFXIV.",
       "Punchline":  "Rabbit-sharp senses for whispers and wandering eyes.",
       "IconUrl":  "https://raw.githubusercontent.com/lapinwhimsical/CarrotPatch/master/src/CarrotPatch/Resources/icon.png",
@@ -12,8 +12,8 @@
       "DalamudApiLevel":  15,
       "IsHide":  false,
       "IsTestingExclusive":  false,
-      "DownloadLinkInstall":  "https://github.com/lapinwhimsical/CarrotPatch/releases/download/v1.0.4/CarrotPatch.zip",
-      "DownloadLinkUpdate":  "https://github.com/lapinwhimsical/CarrotPatch/releases/download/v1.0.4/CarrotPatch.zip",
-      "LastUpdate":  "1781060978"
+      "DownloadLinkInstall":  "https://github.com/lapinwhimsical/CarrotPatch/releases/download/v1.0.5/CarrotPatch.zip",
+      "DownloadLinkUpdate":  "https://github.com/lapinwhimsical/CarrotPatch/releases/download/v1.0.5/CarrotPatch.zip",
+      "LastUpdate":  "1781062109"
   }
 ]
