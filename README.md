@@ -1,5 +1,3 @@
-# CarrotPatch
-
 ## Custom Plugin Repository
 
 Add this raw repository URL to Dalamud/XIVLauncher custom plugin repositories:
