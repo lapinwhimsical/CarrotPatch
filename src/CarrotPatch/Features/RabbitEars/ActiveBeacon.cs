@@ -17,9 +17,11 @@ public sealed class ActiveBeacon
 
     public DateTime CreatedAt { get; init; }
 
-    public DateTime ExpiresAt { get; init; }
+    public DateTime ExpiresAt { get; set; }
 
-    public bool WasClickedOrTargeted { get; set; }
+    public bool IsTargeting { get; set; }
+
+    public DateTime? LastSeenTargetingAt { get; set; }
 
     public float Distance { get; set; }
 

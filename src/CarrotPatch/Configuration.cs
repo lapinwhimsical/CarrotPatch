@@ -12,6 +12,10 @@ public sealed class Configuration : IPluginConfiguration
 
     public bool RabbitEarsEnabled { get; set; } = true;
 
+    public bool TargetAlertsEnabled { get; set; } = true;
+
+    public int MaxActiveBeacons { get; set; } = 3;
+
     public int BeaconDurationSeconds { get; set; } = 15;
 
     public bool ShowOverlayMarker { get; set; } = true;

@@ -9,8 +9,6 @@ namespace CarrotPatch.Features.RabbitEars;
 
 public sealed class RabbitEarsService : IDisposable
 {
-    private const int MaxActiveBeacons = 3;
-
     private readonly IChatGui chatGui;
     private readonly IObjectTable objectTable;
     private readonly IFramework framework;
@@ -80,45 +78,34 @@ public sealed class RabbitEarsService : IDisposable
             return;
         }
 
-        var now = DateTime.UtcNow;
-        var distance = DirectionHelper.Distance(localPlayer.Position, match.Position);
-        var direction = DirectionHelper.CardinalDirection(localPlayer.Position, match.Position);
-
-        this.activeBeacons.RemoveAll(beacon =>
-            string.Equals(beacon.SenderName, tellInfo.SenderName, StringComparison.OrdinalIgnoreCase));
-
-        this.activeBeacons.Insert(0, new ActiveBeacon
-        {
-            SenderName = tellInfo.SenderName,
-            SenderWorld = tellInfo.SenderWorld,
-            GameObjectId = match.GameObjectId,
-            InitialPosition = match.Position,
-            LastKnownPosition = match.Position,
-            CreatedAt = now,
-            ExpiresAt = now.AddSeconds(Math.Clamp(this.configuration.BeaconDurationSeconds, 1, 120)),
-            Distance = distance,
-            DirectionText = direction,
-        });
-
-        if (this.activeBeacons.Count > MaxActiveBeacons)
-        {
-            this.activeBeacons.RemoveRange(MaxActiveBeacons, this.activeBeacons.Count - MaxActiveBeacons);
-        }
+        var beacon = this.UpsertBeacon(
+            tellInfo.SenderName,
+            tellInfo.SenderWorld,
+            match,
+            localPlayer,
+            DateTime.UtcNow,
+            moveToFront: true,
+            isTargeting: this.configuration.TargetAlertsEnabled && IsTargetingLocalPlayer(match, localPlayer));
 
         if (this.configuration.ShowChatMessage)
         {
-            this.chatGui.Print($"Rabbit Ears: Tell from {tellInfo.SenderName} - {MathF.Round(distance)}y {direction}");
+            this.chatGui.Print($"Rabbit Ears: Tell from {tellInfo.SenderName} - {MathF.Round(beacon.Distance)}y {beacon.DirectionText}");
         }
     }
 
     private void OnFrameworkUpdate(IFramework framework)
     {
+        if (!this.configuration.RabbitEarsEnabled)
+            return;
+
         var now = DateTime.UtcNow;
         this.activeBeacons.RemoveAll(beacon => beacon.ExpiresAt <= now);
 
         var localPlayer = this.objectTable.LocalPlayer;
         if (localPlayer is null)
             return;
+
+        var targeterIds = this.UpdateTargetingBeacons(localPlayer, now);
 
         for (var i = this.activeBeacons.Count - 1; i >= 0; i--)
         {
@@ -136,7 +123,101 @@ public sealed class RabbitEarsService : IDisposable
             beacon.LastKnownPosition = gameObject.Position;
             beacon.Distance = DirectionHelper.Distance(localPlayer.Position, gameObject.Position);
             beacon.DirectionText = DirectionHelper.CardinalDirection(localPlayer.Position, gameObject.Position);
+
+            var isStillTargeting = targeterIds.Contains(gameObject.GameObjectId);
+            if (isStillTargeting)
+            {
+                beacon.IsTargeting = true;
+                beacon.LastSeenTargetingAt = now;
+                beacon.ExpiresAt = GetExpiresAt(now, this.configuration.BeaconDurationSeconds);
+                continue;
+            }
+
+            if (beacon.IsTargeting)
+            {
+                beacon.IsTargeting = false;
+                beacon.LastSeenTargetingAt = now;
+                beacon.ExpiresAt = GetExpiresAt(now, this.configuration.BeaconDurationSeconds);
+            }
         }
+
+        this.TrimActiveBeacons();
+    }
+
+    private HashSet<ulong> UpdateTargetingBeacons(IGameObject localPlayer, DateTime now)
+    {
+        var targeterIds = new HashSet<ulong>();
+        if (!this.configuration.TargetAlertsEnabled)
+            return targeterIds;
+
+        foreach (var player in this.objectTable.PlayerObjects)
+        {
+            if (player.GameObjectId == localPlayer.GameObjectId || !IsTargetingLocalPlayer(player, localPlayer))
+                continue;
+
+            targeterIds.Add(player.GameObjectId);
+            var existing = this.FindExistingBeacon(player);
+            this.UpsertBeacon(
+                player.Name.TextValue,
+                senderWorld: null,
+                player,
+                localPlayer,
+                now,
+                moveToFront: existing is null || !existing.IsTargeting,
+                isTargeting: true);
+        }
+
+        return targeterIds;
+    }
+
+    private ActiveBeacon UpsertBeacon(
+        string senderName,
+        string? senderWorld,
+        IGameObject gameObject,
+        IGameObject localPlayer,
+        DateTime now,
+        bool moveToFront,
+        bool isTargeting)
+    {
+        var beacon = this.FindExistingBeacon(gameObject)
+            ?? this.activeBeacons.FirstOrDefault(existing =>
+                string.Equals(existing.SenderName, senderName, StringComparison.OrdinalIgnoreCase));
+
+        if (beacon is null)
+        {
+            beacon = new ActiveBeacon
+            {
+                SenderName = senderName,
+                SenderWorld = senderWorld,
+                GameObjectId = gameObject.GameObjectId,
+                InitialPosition = gameObject.Position,
+                LastKnownPosition = gameObject.Position,
+                CreatedAt = now,
+                ExpiresAt = GetExpiresAt(now, this.configuration.BeaconDurationSeconds),
+            };
+
+            this.activeBeacons.Insert(0, beacon);
+        }
+        else if (moveToFront)
+        {
+            this.activeBeacons.Remove(beacon);
+            this.activeBeacons.Insert(0, beacon);
+        }
+
+        beacon.GameObjectId = gameObject.GameObjectId;
+        beacon.LastKnownPosition = gameObject.Position;
+        beacon.Distance = DirectionHelper.Distance(localPlayer.Position, gameObject.Position);
+        beacon.DirectionText = DirectionHelper.CardinalDirection(localPlayer.Position, gameObject.Position);
+        beacon.ExpiresAt = GetExpiresAt(now, this.configuration.BeaconDurationSeconds);
+
+        if (isTargeting)
+        {
+            beacon.IsTargeting = true;
+            beacon.LastSeenTargetingAt = now;
+        }
+
+        this.TrimActiveBeacons();
+        return beacon;
     }
 
     private IGameObject? FindBestMatch(string senderName, IGameObject localPlayer)
@@ -157,4 +238,22 @@ public sealed class RabbitEarsService : IDisposable
 
         return matches.FirstOrDefault();
     }
+
+    private ActiveBeacon? FindExistingBeacon(IGameObject gameObject)
+        => this.activeBeacons.FirstOrDefault(beacon => beacon.GameObjectId == gameObject.GameObjectId);
+
+    private void TrimActiveBeacons()
+    {
+        var maxActiveBeacons = Math.Clamp(this.configuration.MaxActiveBeacons, 1, 25);
+        if (this.activeBeacons.Count > maxActiveBeacons)
+        {
+            this.activeBeacons.RemoveRange(maxActiveBeacons, this.activeBeacons.Count - maxActiveBeacons);
+        }
+    }
+
+    private static DateTime GetExpiresAt(DateTime now, int durationSeconds)
+        => now.AddSeconds(Math.Clamp(durationSeconds, 1, 120));
+
+    private static bool IsTargetingLocalPlayer(IGameObject gameObject, IGameObject localPlayer)
+        => gameObject.TargetObjectId == localPlayer.GameObjectId;
 }

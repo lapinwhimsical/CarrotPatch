@@ -10,8 +10,6 @@ namespace CarrotPatch;
 public sealed class Plugin : IDalamudPlugin
 {
     private const string MainCommand = "/carrotpatch";
-    private const string ShortCommand = "/cp";
-    private const string RabbitEarsCommand = "/rabbitears";
 
     private readonly IDalamudPluginInterface pluginInterface;
     private readonly ICommandManager commandManager;
@@ -49,22 +47,11 @@ public sealed class Plugin : IDalamudPlugin
         {
             HelpMessage = "Open CarrotPatch settings.",
         });
-        this.commandManager.AddHandler(ShortCommand, new CommandInfo(this.OnCommand)
-        {
-            HelpMessage = "Open CarrotPatch settings.",
-        });
-        this.commandManager.AddHandler(RabbitEarsCommand, new CommandInfo(this.OnCommand)
-        {
-            HelpMessage = "Open Rabbit Ears settings.",
-        });
-
         this.pluginLog.Information("CarrotPatch loaded.");
     }
 
     public void Dispose()
     {
-        this.commandManager.RemoveHandler(RabbitEarsCommand);
-        this.commandManager.RemoveHandler(ShortCommand);
         this.commandManager.RemoveHandler(MainCommand);
 
         this.pluginInterface.UiBuilder.OpenMainUi -= this.OpenConfigUi;

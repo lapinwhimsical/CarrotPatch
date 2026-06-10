@@ -8,6 +8,7 @@ namespace CarrotPatch.Features.RabbitEars;
 public sealed class RabbitEarsOverlay
 {
     private static readonly Vector4 MarkerColor = new(1f, 0.9f, 0.1f, 1f);
+    private static readonly Vector4 TargetingColor = new(1f, 0.15f, 0.1f, 1f);
     private static readonly Vector4 ShadowColor = new(0f, 0f, 0f, 0.85f);
 
     private readonly RabbitEarsService rabbitEarsService;
@@ -32,19 +33,17 @@ public sealed class RabbitEarsOverlay
         if (!this.configuration.RabbitEarsEnabled || this.rabbitEarsService.ActiveBeacons.Count == 0)
             return;
 
-        var drewEveryWorldMarker = true;
         if (this.configuration.ShowOverlayMarker)
         {
             foreach (var beacon in this.rabbitEarsService.ActiveBeacons)
             {
-                drewEveryWorldMarker &= this.TryDrawWorldMarker(beacon);
+                this.TryDrawWorldMarker(beacon);
             }
+
+            return;
         }
 
-        if (!drewEveryWorldMarker || !this.configuration.ShowOverlayMarker)
-        {
-            this.DrawFallbackWindow();
-        }
+        this.DrawFallbackWindow();
     }
 
     private bool TryDrawWorldMarker(ActiveBeacon beacon)
@@ -57,19 +56,28 @@ public sealed class RabbitEarsOverlay
         if (!this.gameGui.WorldToScreen(markerPosition, out var screenPosition, out var inView) || !inView)
             return false;
 
+        if (!IsSaneScreenPosition(screenPosition))
+            return false;
+
         var drawList = ImGui.GetForegroundDrawList();
-        var lines = new[]
+        var statusLine = beacon.IsTargeting
+            ? "TARGETING"
+            : "Tell";
+        var detailLine = beacon.IsTargeting
+            ? $"{MathF.Round(beacon.Distance)}y {beacon.DirectionText}"
+            : $"{MathF.Round(beacon.Distance)}y {beacon.DirectionText}  {beacon.SecondsRemaining}s";
+        var lines = new (string Text, Vector4 Color)[]
         {
-            "Tell",
-            beacon.SenderName,
-            $"{MathF.Round(beacon.Distance)}y {beacon.DirectionText}  {beacon.SecondsRemaining}s",
+            (statusLine, beacon.IsTargeting ? TargetingColor : MarkerColor),
+            (beacon.SenderName, MarkerColor),
+            (detailLine, MarkerColor),
         };
 
         var maxWidth = 0f;
         var totalHeight = 0f;
         foreach (var line in lines)
         {
-            var size = ImGui.CalcTextSize(line);
+            var size = ImGui.CalcTextSize(line.Text);
             maxWidth = MathF.Max(maxWidth, size.X);
             totalHeight += size.Y;
         }
@@ -92,8 +100,11 @@ public sealed class RabbitEarsOverlay
         var cursor = boxMin + padding;
         foreach (var line in lines)
         {
-            var size = ImGui.CalcTextSize(line);
-            drawList.AddText(new Vector2(screenPosition.X - (size.X / 2f), cursor.Y), color, line);
+            var size = ImGui.CalcTextSize(line.Text);
+            drawList.AddText(
+                new Vector2(screenPosition.X - (size.X / 2f), cursor.Y),
+                ImGui.GetColorU32(line.Color),
+                line.Text);
             cursor.Y += size.Y;
         }
 
@@ -118,11 +129,28 @@ public sealed class RabbitEarsOverlay
 
         foreach (var beacon in this.rabbitEarsService.ActiveBeacons)
         {
-            ImGui.TextColored(MarkerColor, $"Tell from {beacon.SenderName}");
+            ImGui.TextColored(beacon.IsTargeting ? TargetingColor : MarkerColor, beacon.IsTargeting ? "TARGETING" : "Tell");
             ImGui.SameLine();
-            ImGui.TextDisabled($"{MathF.Round(beacon.Distance)}y {beacon.DirectionText}  {beacon.SecondsRemaining}s");
+            ImGui.TextColored(MarkerColor, beacon.SenderName);
+            ImGui.SameLine();
+            ImGui.TextDisabled(beacon.IsTargeting
+                ? $"{MathF.Round(beacon.Distance)}y {beacon.DirectionText}"
+                : $"{MathF.Round(beacon.Distance)}y {beacon.DirectionText}  {beacon.SecondsRemaining}s");
         }
 
         ImGui.End();
+    }
+
+    private static bool IsSaneScreenPosition(Vector2 screenPosition)
+    {
+        if (!float.IsFinite(screenPosition.X) || !float.IsFinite(screenPosition.Y))
+            return false;
+
+        var displaySize = ImGui.GetIO().DisplaySize;
+        const float Margin = 64f;
+        return screenPosition.X >= -Margin
+            && screenPosition.Y >= -Margin
+            && screenPosition.X <= displaySize.X + Margin
+            && screenPosition.Y <= displaySize.Y + Margin;
     }
 }

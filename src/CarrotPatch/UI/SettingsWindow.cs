@@ -38,6 +38,20 @@ public sealed class SettingsWindow
             this.configuration.Save();
         }
 
+        var targetAlertsEnabled = this.configuration.TargetAlertsEnabled;
+        if (ImGui.Checkbox("Alert when players target me", ref targetAlertsEnabled))
+        {
+            this.configuration.TargetAlertsEnabled = targetAlertsEnabled;
+            this.configuration.Save();
+        }
+
+        var maxActiveBeacons = Math.Clamp(this.configuration.MaxActiveBeacons, 1, 25);
+        if (ImGui.InputInt("Max overlay markers", ref maxActiveBeacons))
+        {
+            this.configuration.MaxActiveBeacons = Math.Clamp(maxActiveBeacons, 1, 25);
+            this.configuration.Save();
+        }
+
         var duration = Math.Clamp(this.configuration.BeaconDurationSeconds, 1, 120);
         if (ImGui.SliderInt("Beacon duration", ref duration, 1, 120, "%d seconds"))
         {
