@@ -24,9 +24,6 @@ public sealed class RabbitEarsAlertFilter
         IGameObject? gameObject,
         IGameObject? localPlayer)
     {
-        if (this.configuration.SuppressAlertsFromSelf && IsSelf(senderName, gameObject, localPlayer))
-            return true;
-
         if (this.configuration.SuppressAlertsFromPartyMembers && this.IsPartyMember(senderName, gameObject))
             return true;
 
@@ -41,17 +38,6 @@ public sealed class RabbitEarsAlertFilter
             TellParserCore.NormalizeName(firstName),
             TellParserCore.NormalizeName(secondName),
             StringComparison.OrdinalIgnoreCase);
-
-    private static bool IsSelf(string senderName, IGameObject? gameObject, IGameObject? localPlayer)
-    {
-        if (localPlayer is null)
-            return false;
-
-        if (gameObject is not null && gameObject.GameObjectId == localPlayer.GameObjectId)
-            return true;
-
-        return IsSamePlayerName(senderName, localPlayer.Name.TextValue);
-    }
 
     private bool IsPartyMember(string senderName, IGameObject? gameObject)
     {

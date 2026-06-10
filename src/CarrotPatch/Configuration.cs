@@ -40,8 +40,6 @@ public sealed class Configuration : IPluginConfiguration
 
     public bool SuppressAlertsFromAllianceMembers { get; set; }
 
-    public bool SuppressAlertsFromSelf { get; set; }
-
     public bool DebugMode { get; set; }
 
     public void Initialize(IDalamudPluginInterface pluginInterface)

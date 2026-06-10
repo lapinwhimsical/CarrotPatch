@@ -218,13 +218,6 @@ public sealed class SettingsWindow
             this.configuration.Save();
         }
 
-        var suppressSelf = this.configuration.SuppressAlertsFromSelf;
-        if (ImGui.Checkbox("Suppress alerts from yourself", ref suppressSelf))
-        {
-            this.configuration.SuppressAlertsFromSelf = suppressSelf;
-            this.configuration.Save();
-        }
-
     }
 
     private void DrawOverheadPreview()
