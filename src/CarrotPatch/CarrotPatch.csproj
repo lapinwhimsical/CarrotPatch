@@ -12,7 +12,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Include="Resources\icon.svg" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Resources\icon.png" CopyToOutputDirectory="PreserveNewest" />
     <EmbeddedResource Include="Resources\notification.mp3" />
   </ItemGroup>
 
