@@ -2,7 +2,7 @@
     "Author":  "lapinwhimsical",
     "Name":  "CarrotPatch",
     "InternalName":  "CarrotPatch",
-    "AssemblyVersion":  "1.0.2.0",
+    "AssemblyVersion":  "1.0.3.0",
     "Description":  "A small collection of whimsical tools and experiments for FFXIV.",
-  "Punchline": "Rabbit-sharp senses for whispers and wandering eyes."
+    "Punchline":  "Rabbit-sharp senses for whispers and wandering eyes."
 }
