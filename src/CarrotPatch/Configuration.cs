@@ -30,6 +30,8 @@ public sealed class Configuration : IPluginConfiguration
 
     public bool ShowChatMessage { get; set; } = true;
 
+    public bool ShowOnlyLatestSignalPerPlayer { get; set; } = true;
+
     public bool DebugMode { get; set; }
 
     public void Initialize(IDalamudPluginInterface pluginInterface)

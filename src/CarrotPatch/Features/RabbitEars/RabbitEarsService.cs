@@ -44,6 +44,60 @@ public sealed class RabbitEarsService : IDisposable
     public void ClearRecentSignals()
         => this.recentSignalStore.Clear();
 
+    public IGameObject? ResolveSignalObject(RecentSignal signal)
+    {
+        var gameObject = signal.GameObjectId.HasValue
+            ? this.objectTable.SearchById(signal.GameObjectId.Value)
+            : null;
+
+        if (gameObject is not null)
+            return gameObject;
+
+        var localPlayer = this.objectTable.LocalPlayer;
+        return localPlayer is null
+            ? null
+            : this.FindBestMatch(signal.SenderName, localPlayer);
+    }
+
+    public bool ShowManualMarker(RecentSignal signal)
+    {
+        var localPlayer = this.objectTable.LocalPlayer;
+        if (localPlayer is null)
+            return false;
+
+        var gameObject = this.ResolveSignalObject(signal);
+        if (gameObject is null)
+            return false;
+
+        this.UpsertBeacon(
+            signal.SenderName,
+            signal.SenderWorld,
+            gameObject,
+            localPlayer,
+            DateTime.UtcNow,
+            moveToFront: true,
+            isTargeting: false,
+            hasTell: false,
+            recordTargetingSignal: false,
+            isManualMarker: true);
+
+        return true;
+    }
+
+    public bool IsSignalActive(RecentSignal signal)
+    {
+        var beacon = this.FindExistingBeacon(signal);
+        if (beacon is null || beacon.ExpiresAt <= DateTime.UtcNow)
+            return false;
+
+        return signal.Type switch
+        {
+            RabbitEarsSignalType.Targeting => beacon.IsTargeting,
+            RabbitEarsSignalType.Tell => beacon.HasTell && beacon.LastTellAt == signal.SeenAt,
+            _ => false,
+        };
+    }
+
     public void Dispose()
     {
         this.framework.Update -= this.OnFrameworkUpdate;
@@ -100,7 +154,8 @@ public sealed class RabbitEarsService : IDisposable
             moveToFront: true,
             isTargeting: IsTargetingLocalPlayer(match, localPlayer),
             hasTell: true,
-            recordTargetingSignal: false);
+            recordTargetingSignal: false,
+            isManualMarker: false);
     }
 
     private void OnFrameworkUpdate(IFramework framework)
@@ -175,7 +230,8 @@ public sealed class RabbitEarsService : IDisposable
                 moveToFront: isNewTargetingSignal,
                 isTargeting: true,
                 hasTell: false,
-                recordTargetingSignal: isNewTargetingSignal);
+                recordTargetingSignal: isNewTargetingSignal,
+                isManualMarker: false);
         }
 
         return targeterIds;
@@ -190,7 +246,8 @@ public sealed class RabbitEarsService : IDisposable
         bool moveToFront,
         bool isTargeting,
         bool hasTell,
-        bool recordTargetingSignal)
+        bool recordTargetingSignal,
+        bool isManualMarker)
     {
         var beacon = this.FindExistingBeacon(gameObject)
             ?? this.activeBeacons.FirstOrDefault(existing =>
@@ -243,6 +300,12 @@ public sealed class RabbitEarsService : IDisposable
             }
         }
 
+        if (isManualMarker)
+        {
+            beacon.IsManualMarker = true;
+            beacon.LastManualMarkerAt = now;
+        }
+
         if (recordTargetingSignal)
         {
             this.RecordSignal(RabbitEarsSignalType.Targeting, senderName, senderWorld, gameObject.GameObjectId, beacon.Distance, now, isVisible: true);
@@ -277,6 +340,15 @@ public sealed class RabbitEarsService : IDisposable
 
     private ActiveBeacon? FindExistingBeacon(IGameObject gameObject)
         => this.activeBeacons.FirstOrDefault(beacon => beacon.GameObjectId == gameObject.GameObjectId);
+
+    private ActiveBeacon? FindExistingBeacon(RecentSignal signal)
+        => signal.GameObjectId.HasValue
+            ? this.activeBeacons.FirstOrDefault(beacon => beacon.GameObjectId == signal.GameObjectId.Value)
+            : this.activeBeacons.FirstOrDefault(beacon =>
+                string.Equals(
+                    TellParser.NormalizeName(beacon.SenderName),
+                    TellParser.NormalizeName(signal.SenderName),
+                    StringComparison.OrdinalIgnoreCase));
 
     private void TrimActiveBeacons()
     {
@@ -322,7 +394,6 @@ public sealed class RabbitEarsService : IDisposable
                 continue;
 
             signal.GameObjectId = gameObject.GameObjectId;
-            signal.Distance = DirectionHelper.Distance(localPlayer.Position, gameObject.Position);
         }
     }
 }

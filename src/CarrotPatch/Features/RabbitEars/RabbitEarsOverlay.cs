@@ -64,8 +64,9 @@ public sealed class RabbitEarsOverlay
         var drawList = ImGui.GetForegroundDrawList();
         const string TargetingLabel = "TARGETING";
         const string TellLabel = "TELL";
+        const string MarkerLabel = "MARKER";
         const string StatusGap = "  ";
-        var statusLine = $"{TargetingLabel}{StatusGap}{TellLabel}";
+        var statusLine = $"{TargetingLabel}{StatusGap}{TellLabel}{StatusGap}{MarkerLabel}";
         var detailLine = beacon.IsTargeting
             ? $"{MathF.Round(beacon.Distance)}y"
             : $"{MathF.Round(beacon.Distance)}y  {beacon.SecondsRemaining}s";
@@ -106,6 +107,7 @@ public sealed class RabbitEarsOverlay
         var targetingSize = ImGui.CalcTextSize(TargetingLabel);
         var gapSize = ImGui.CalcTextSize(StatusGap);
         var tellSize = ImGui.CalcTextSize(TellLabel);
+        var markerSize = ImGui.CalcTextSize(MarkerLabel);
         var statusStart = new Vector2(screenPosition.X - (statusSize.X / 2f), cursor.Y);
         drawList.AddText(
             statusStart,
@@ -115,6 +117,10 @@ public sealed class RabbitEarsOverlay
             new Vector2(statusStart.X + targetingSize.X + gapSize.X, cursor.Y),
             ImGui.GetColorU32(beacon.HasTell ? TargetingColor : DisabledColor),
             TellLabel);
+        drawList.AddText(
+            new Vector2(statusStart.X + targetingSize.X + gapSize.X + tellSize.X + gapSize.X, cursor.Y),
+            ImGui.GetColorU32(beacon.IsManualMarker ? TargetingColor : DisabledColor),
+            MarkerLabel);
         cursor.Y += statusSize.Y;
 
         var senderSize = ImGui.CalcTextSize(beacon.SenderName);
@@ -155,6 +161,8 @@ public sealed class RabbitEarsOverlay
             ImGui.TextColored(beacon.IsTargeting ? TargetingColor : DisabledColor, "TARGETING");
             ImGui.SameLine();
             ImGui.TextColored(beacon.HasTell ? TargetingColor : DisabledColor, "TELL");
+            ImGui.SameLine();
+            ImGui.TextColored(beacon.IsManualMarker ? TargetingColor : DisabledColor, "MARKER");
             ImGui.SameLine();
             ImGui.TextColored(MarkerColor, beacon.SenderName);
             ImGui.SameLine();

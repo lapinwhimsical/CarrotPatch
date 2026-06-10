@@ -27,6 +27,10 @@ public sealed class ActiveBeacon
 
     public DateTime? LastTellAt { get; set; }
 
+    public bool IsManualMarker { get; set; }
+
+    public DateTime? LastManualMarkerAt { get; set; }
+
     public float Distance { get; set; }
 
     public int SecondsRemaining => Math.Max(0, (int)Math.Ceiling((this.ExpiresAt - DateTime.UtcNow).TotalSeconds));

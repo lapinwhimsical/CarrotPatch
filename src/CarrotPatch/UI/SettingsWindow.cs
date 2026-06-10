@@ -7,10 +7,12 @@ namespace CarrotPatch.UI;
 public sealed class SettingsWindow
 {
     private readonly Configuration configuration;
+    private readonly RabbitEarsService rabbitEarsService;
 
-    public SettingsWindow(Configuration configuration)
+    public SettingsWindow(Configuration configuration, RabbitEarsService rabbitEarsService)
     {
         this.configuration = configuration;
+        this.rabbitEarsService = rabbitEarsService;
     }
 
     public bool IsOpen { get; set; }
@@ -102,6 +104,18 @@ public sealed class SettingsWindow
         {
             this.configuration.ShowChatMessage = showChatMessage;
             this.configuration.Save();
+        }
+
+        var showOnlyLatestSignalPerPlayer = this.configuration.ShowOnlyLatestSignalPerPlayer;
+        if (ImGui.Checkbox("Only show latest entry per player", ref showOnlyLatestSignalPerPlayer))
+        {
+            this.configuration.ShowOnlyLatestSignalPerPlayer = showOnlyLatestSignalPerPlayer;
+            this.configuration.Save();
+        }
+
+        if (ImGui.Button("Clear signal log"))
+        {
+            this.rabbitEarsService.ClearRecentSignals();
         }
 
         var debugMode = this.configuration.DebugMode;
