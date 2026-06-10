@@ -18,6 +18,7 @@ public sealed class Plugin : IDalamudPlugin
     private readonly NotificationSoundPlayer notificationSoundPlayer;
     private readonly RabbitEarsService rabbitEarsService;
     private readonly RabbitEarsOverlay rabbitEarsOverlay;
+    private readonly RecentSignalsWindow recentSignalsWindow;
     private readonly SettingsWindow settingsWindow;
 
     public Plugin(
@@ -39,7 +40,8 @@ public sealed class Plugin : IDalamudPlugin
         this.notificationSoundPlayer = new NotificationSoundPlayer(pluginLog);
         this.rabbitEarsService = new RabbitEarsService(chatGui, objectTable, framework, pluginLog, this.configuration, this.notificationSoundPlayer);
         this.rabbitEarsOverlay = new RabbitEarsOverlay(this.rabbitEarsService, objectTable, gameGui, this.configuration);
-        this.settingsWindow = new SettingsWindow(this.configuration);
+        this.recentSignalsWindow = new RecentSignalsWindow(this.rabbitEarsService);
+        this.settingsWindow = new SettingsWindow(this.configuration, this.recentSignalsWindow);
 
         this.pluginInterface.UiBuilder.Draw += this.DrawUi;
         this.pluginInterface.UiBuilder.OpenConfigUi += this.OpenConfigUi;
@@ -77,6 +79,7 @@ public sealed class Plugin : IDalamudPlugin
     private void DrawUi()
     {
         this.rabbitEarsOverlay.Draw();
+        this.recentSignalsWindow.Draw();
         this.settingsWindow.Draw();
     }
 }

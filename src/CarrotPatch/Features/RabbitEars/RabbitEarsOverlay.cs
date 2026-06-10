@@ -53,7 +53,8 @@ public sealed class RabbitEarsOverlay
         if (gameObject is null)
             return false;
 
-        var markerPosition = gameObject.Position + new Vector3(0f, 2.25f, 0f);
+        var scale = RabbitEarsOptions.ClampMarkerScale(this.configuration.MarkerScale);
+        var markerPosition = gameObject.Position + new Vector3(0f, 2.25f * scale, 0f);
         if (!this.gameGui.WorldToScreen(markerPosition, out var screenPosition, out var inView) || !inView)
             return false;
 
@@ -84,19 +85,20 @@ public sealed class RabbitEarsOverlay
             totalHeight += size.Y;
         }
 
-        var padding = new Vector2(8f, 5f);
-        var boxMin = new Vector2(screenPosition.X - (maxWidth / 2f) - padding.X, screenPosition.Y - totalHeight - 34f);
+        var padding = new Vector2(8f, 5f) * scale;
+        var boxMin = new Vector2(screenPosition.X - (maxWidth / 2f) - padding.X, screenPosition.Y - totalHeight - (34f * scale));
         var boxMax = new Vector2(screenPosition.X + (maxWidth / 2f) + padding.X, boxMin.Y + totalHeight + (padding.Y * 2f));
-        var center = new Vector2(screenPosition.X, boxMax.Y + 9f);
+        var center = new Vector2(screenPosition.X, boxMax.Y + (9f * scale));
         var color = ImGui.GetColorU32(MarkerColor);
         var shadow = ImGui.GetColorU32(ShadowColor);
+        var rounding = 4f * scale;
 
-        drawList.AddRectFilled(boxMin, boxMax, shadow, 4f);
-        drawList.AddRect(boxMin, boxMax, color, 4f, ImDrawFlags.None, 1.5f);
+        drawList.AddRectFilled(boxMin, boxMax, shadow, rounding);
+        drawList.AddRect(boxMin, boxMax, color, rounding, ImDrawFlags.None, 1.5f * scale);
         drawList.AddTriangleFilled(
             new Vector2(center.X, center.Y),
-            new Vector2(center.X - 7f, boxMax.Y),
-            new Vector2(center.X + 7f, boxMax.Y),
+            new Vector2(center.X - (7f * scale), boxMax.Y),
+            new Vector2(center.X + (7f * scale), boxMax.Y),
             color);
 
         var cursor = boxMin + padding;
@@ -147,6 +149,7 @@ public sealed class RabbitEarsOverlay
             return;
         }
 
+        ImGui.SetWindowFontScale(RabbitEarsOptions.ClampMarkerScale(this.configuration.MarkerScale));
         foreach (var beacon in this.rabbitEarsService.ActiveBeacons)
         {
             ImGui.TextColored(beacon.IsTargeting ? TargetingColor : DisabledColor, "TARGETING");

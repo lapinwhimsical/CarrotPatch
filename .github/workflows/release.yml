@@ -20,6 +20,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: release
+  cancel-in-progress: false
+
 jobs:
   release:
     name: Build and publish release
@@ -66,6 +70,34 @@ jobs:
           powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\release\Update-ReleaseMetadata.ps1 `
             -Bump '${{ inputs.bump }}' `
             -Version '${{ inputs.version }}'
+
+      - name: Validate release metadata
+        shell: pwsh
+        run: |
+          [xml]$project = Get-Content .\src\CarrotPatch\CarrotPatch.csproj
+          $projectVersion = $project.Project.PropertyGroup.Version
+          $pluginManifest = Get-Content .\src\CarrotPatch\CarrotPatch.json -Raw | ConvertFrom-Json
+          $repoManifest = Get-Content .\repo.json -Raw | ConvertFrom-Json
+          $repoPlugin = @($repoManifest)[0]
+          $expectedUrl = "https://github.com/lapinwhimsical/CarrotPatch/releases/download/${{ steps.metadata.outputs.tag }}/CarrotPatch.zip"
+
+          if ($projectVersion -ne '${{ steps.metadata.outputs.assembly_version }}') {
+            throw "Project version '$projectVersion' does not match release output '${{ steps.metadata.outputs.assembly_version }}'."
+          }
+
+          if ($pluginManifest.AssemblyVersion -ne $projectVersion -or $repoPlugin.AssemblyVersion -ne $projectVersion) {
+            throw "Manifest versions do not match project version '$projectVersion'."
+          }
+
+          if ($repoPlugin.DownloadLinkInstall -ne $expectedUrl -or $repoPlugin.DownloadLinkUpdate -ne $expectedUrl) {
+            throw "Repo manifest download URLs do not match expected release asset URL."
+          }
+
+          foreach ($url in @($pluginManifest.IconUrl, $repoPlugin.IconUrl)) {
+            if ($url -notmatch '/main/') {
+              throw "Raw GitHub URL should point at main: $url"
+            }
+          }
 
       - name: Build Release
         run: dotnet build .\src\CarrotPatch\CarrotPatch.csproj -c Release -p:Platform=x64

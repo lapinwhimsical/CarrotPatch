@@ -16,6 +16,7 @@ public sealed class RabbitEarsService : IDisposable
     private readonly Configuration configuration;
     private readonly NotificationSoundPlayer notificationSoundPlayer;
     private readonly List<ActiveBeacon> activeBeacons = [];
+    private readonly RecentSignalStore recentSignalStore = new();
 
     public RabbitEarsService(
         IChatGui chatGui,
@@ -37,6 +38,11 @@ public sealed class RabbitEarsService : IDisposable
     }
 
     public IReadOnlyList<ActiveBeacon> ActiveBeacons => this.activeBeacons;
+
+    public IReadOnlyList<RecentSignal> RecentSignals => this.recentSignalStore.RecentSignals;
+
+    public void ClearRecentSignals()
+        => this.recentSignalStore.Clear();
 
     public void Dispose()
     {
@@ -64,15 +70,22 @@ public sealed class RabbitEarsService : IDisposable
         if (!TellParser.TryParseIncomingTell(message, localPlayerName, out var tellInfo))
             return;
 
+        if (!RabbitEarsFilter.IsAllowed(tellInfo.SenderName, this.configuration.AllowedPlayerNames, this.configuration.BlockedPlayerNames))
+            return;
+
         this.pluginLog.Information("Rabbit Ears detected tell from {Sender}.", tellInfo.SenderName);
 
         if (localPlayer is null)
+        {
+            this.RecordSignal(RabbitEarsSignalType.Tell, tellInfo.SenderName, tellInfo.SenderWorld, null, null, now: DateTime.UtcNow, isVisible: false);
             return;
+        }
 
         var match = this.FindBestMatch(tellInfo.SenderName, localPlayer);
         if (match is null)
         {
             this.pluginLog.Information("{Sender} not found nearby.", tellInfo.SenderName);
+            this.RecordSignal(RabbitEarsSignalType.Tell, tellInfo.SenderName, tellInfo.SenderWorld, null, null, now: DateTime.UtcNow, isVisible: false);
             if (this.configuration.ShowChatMessage)
             {
                 this.chatGui.Print($"Rabbit Ears: Tell from {tellInfo.SenderName}, but they are not currently nearby or visible.");
@@ -89,7 +102,8 @@ public sealed class RabbitEarsService : IDisposable
             DateTime.UtcNow,
             moveToFront: true,
             isTargeting: this.configuration.TargetAlertsEnabled && IsTargetingLocalPlayer(match, localPlayer),
-            hasTell: true);
+            hasTell: true,
+            recordTargetingSignal: false);
     }
 
     private void OnFrameworkUpdate(IFramework framework)
@@ -104,6 +118,7 @@ public sealed class RabbitEarsService : IDisposable
         if (localPlayer is null)
             return;
 
+        this.UpdateRecentSignalVisibility(localPlayer);
         var targeterIds = this.UpdateTargetingBeacons(localPlayer, now);
 
         for (var i = this.activeBeacons.Count - 1; i >= 0; i--)
@@ -153,17 +168,22 @@ public sealed class RabbitEarsService : IDisposable
             if (player.GameObjectId == localPlayer.GameObjectId || !IsTargetingLocalPlayer(player, localPlayer))
                 continue;
 
+            if (!RabbitEarsFilter.IsAllowed(player.Name.TextValue, this.configuration.AllowedPlayerNames, this.configuration.BlockedPlayerNames))
+                continue;
+
             targeterIds.Add(player.GameObjectId);
             var existing = this.FindExistingBeacon(player);
+            var isNewTargetingSignal = existing is null || !existing.IsTargeting;
             this.UpsertBeacon(
                 player.Name.TextValue,
                 senderWorld: null,
                 player,
                 localPlayer,
                 now,
-                moveToFront: existing is null || !existing.IsTargeting,
+                moveToFront: isNewTargetingSignal,
                 isTargeting: true,
-                hasTell: false);
+                hasTell: false,
+                recordTargetingSignal: isNewTargetingSignal);
         }
 
         return targeterIds;
@@ -177,7 +197,8 @@ public sealed class RabbitEarsService : IDisposable
         DateTime now,
         bool moveToFront,
         bool isTargeting,
-        bool hasTell)
+        bool hasTell,
+        bool recordTargetingSignal)
     {
         var beacon = this.FindExistingBeacon(gameObject)
             ?? this.activeBeacons.FirstOrDefault(existing =>
@@ -197,9 +218,9 @@ public sealed class RabbitEarsService : IDisposable
             };
 
             this.activeBeacons.Insert(0, beacon);
-            if (this.configuration.PlaySoundOnOverlayMarker)
+            if (this.ShouldPlaySound(hasTell, recordTargetingSignal))
             {
-                this.notificationSoundPlayer.Play();
+                this.notificationSoundPlayer.Play(this.configuration.NotificationVolume);
             }
         }
         else if (moveToFront)
@@ -223,6 +244,20 @@ public sealed class RabbitEarsService : IDisposable
         {
             beacon.HasTell = true;
             beacon.LastTellAt = now;
+            this.RecordSignal(RabbitEarsSignalType.Tell, senderName, senderWorld, gameObject.GameObjectId, beacon.Distance, now, isVisible: true);
+            if (this.ShouldPlaySound(hasTell: true, recordTargetingSignal: false))
+            {
+                this.notificationSoundPlayer.Play(this.configuration.NotificationVolume);
+            }
+        }
+
+        if (recordTargetingSignal)
+        {
+            this.RecordSignal(RabbitEarsSignalType.Targeting, senderName, senderWorld, gameObject.GameObjectId, beacon.Distance, now, isVisible: true);
+            if (this.ShouldPlaySound(hasTell: false, recordTargetingSignal: true))
+            {
+                this.notificationSoundPlayer.Play(this.configuration.NotificationVolume);
+            }
         }
 
         this.TrimActiveBeacons();
@@ -253,7 +288,7 @@ public sealed class RabbitEarsService : IDisposable
 
     private void TrimActiveBeacons()
     {
-        var maxActiveBeacons = Math.Clamp(this.configuration.MaxActiveBeacons, 1, 25);
+        var maxActiveBeacons = RabbitEarsOptions.ClampMaxActiveBeacons(this.configuration.MaxActiveBeacons);
         if (this.activeBeacons.Count > maxActiveBeacons)
         {
             this.activeBeacons.RemoveRange(maxActiveBeacons, this.activeBeacons.Count - maxActiveBeacons);
@@ -261,8 +296,41 @@ public sealed class RabbitEarsService : IDisposable
     }
 
     private static DateTime GetExpiresAt(DateTime now, int durationSeconds)
-        => now.AddSeconds(Math.Clamp(durationSeconds, 1, 120));
+        => now.AddSeconds(RabbitEarsOptions.ClampBeaconDurationSeconds(durationSeconds));
 
     private static bool IsTargetingLocalPlayer(IGameObject gameObject, IGameObject localPlayer)
         => gameObject.TargetObjectId == localPlayer.GameObjectId;
+
+    private bool ShouldPlaySound(bool hasTell, bool recordTargetingSignal)
+        => this.configuration.PlaySoundOnOverlayMarker
+            && ((hasTell && this.configuration.PlaySoundOnTell)
+                || (recordTargetingSignal && this.configuration.PlaySoundOnTargeting));
+
+    private void RecordSignal(
+        RabbitEarsSignalType type,
+        string senderName,
+        string? senderWorld,
+        ulong? gameObjectId,
+        float? distance,
+        DateTime now,
+        bool isVisible)
+        => this.recentSignalStore.Record(type, senderName, senderWorld, gameObjectId, distance, now, isVisible);
+
+    private void UpdateRecentSignalVisibility(IGameObject localPlayer)
+    {
+        foreach (var signal in this.recentSignalStore.RecentSignals)
+        {
+            var gameObject = signal.GameObjectId.HasValue
+                ? this.objectTable.SearchById(signal.GameObjectId.Value)
+                : null;
+
+            gameObject ??= this.FindBestMatch(signal.SenderName, localPlayer);
+            signal.IsVisible = gameObject is not null;
+            if (gameObject is null)
+                continue;
+
+            signal.GameObjectId = gameObject.GameObjectId;
+            signal.Distance = DirectionHelper.Distance(localPlayer.Position, gameObject.Position);
+        }
+    }
 }

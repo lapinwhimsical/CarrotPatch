@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Dalamud.Configuration;
 using Dalamud.Plugin;
 
@@ -21,6 +22,18 @@ public sealed class Configuration : IPluginConfiguration
     public bool ShowOverlayMarker { get; set; } = true;
 
     public bool PlaySoundOnOverlayMarker { get; set; } = true;
+
+    public bool PlaySoundOnTell { get; set; } = true;
+
+    public bool PlaySoundOnTargeting { get; set; } = true;
+
+    public float NotificationVolume { get; set; } = 1f;
+
+    public float MarkerScale { get; set; } = 1f;
+
+    public List<string> AllowedPlayerNames { get; set; } = [];
+
+    public List<string> BlockedPlayerNames { get; set; } = [];
 
     public bool ShowChatMessage { get; set; } = true;
 

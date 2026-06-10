@@ -22,14 +22,15 @@ public sealed class NotificationSoundPlayer
         this.assembly = typeof(NotificationSoundPlayer).Assembly;
     }
 
-    public void Play()
+    public void Play(float volume)
     {
         var now = DateTime.UtcNow;
         if (now - this.lastPlayedAt < MinimumInterval)
             return;
 
         this.lastPlayedAt = now;
-        var thread = new Thread(this.PlayOnBackgroundThread)
+        var clampedVolume = RabbitEarsOptions.ClampNotificationVolume(volume);
+        var thread = new Thread(() => this.PlayOnBackgroundThread(clampedVolume))
         {
             IsBackground = true,
             Name = "CarrotPatch notification sound",
@@ -37,7 +38,7 @@ public sealed class NotificationSoundPlayer
         thread.Start();
     }
 
-    private void PlayOnBackgroundThread()
+    private void PlayOnBackgroundThread(float volume)
     {
         try
         {
@@ -50,6 +51,7 @@ public sealed class NotificationSoundPlayer
 
             using var reader = new Mp3FileReader(stream);
             using var output = new WaveOutEvent();
+            output.Volume = volume;
             output.Init(reader);
             output.Play();
 

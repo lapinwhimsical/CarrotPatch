@@ -8,6 +8,10 @@ on:
     branches:
       - main
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     name: Build plugin
@@ -40,6 +44,29 @@ jobs:
 
       - name: Build Release
         run: dotnet build .\src\CarrotPatch\CarrotPatch.csproj -c Release -p:Platform=x64
+
+      - name: Validate release metadata
+        shell: pwsh
+        run: |
+          [xml]$project = Get-Content .\src\CarrotPatch\CarrotPatch.csproj
+          $projectVersion = $project.Project.PropertyGroup.Version
+          $pluginManifest = Get-Content .\src\CarrotPatch\CarrotPatch.json -Raw | ConvertFrom-Json
+          $repoManifest = Get-Content .\repo.json -Raw | ConvertFrom-Json
+          $repoPlugin = @($repoManifest)[0]
+
+          if ($pluginManifest.AssemblyVersion -ne $projectVersion) {
+            throw "Plugin manifest version '$($pluginManifest.AssemblyVersion)' does not match project version '$projectVersion'."
+          }
+
+          if ($repoPlugin.AssemblyVersion -ne $projectVersion) {
+            throw "Repo manifest version '$($repoPlugin.AssemblyVersion)' does not match project version '$projectVersion'."
+          }
+
+          foreach ($url in @($pluginManifest.IconUrl, $repoPlugin.IconUrl)) {
+            if ($url -notmatch '/main/') {
+              throw "Raw GitHub URL should point at main: $url"
+            }
+          }
 
       - name: Verify package
         shell: pwsh

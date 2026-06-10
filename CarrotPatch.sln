@@ -7,6 +7,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{827E0CD3-B72
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CarrotPatch", "src\CarrotPatch\CarrotPatch.csproj", "{D82B1BFA-C42E-4B14-8062-020940DDD971}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CarrotPatch.Tests", "tests\CarrotPatch.Tests\CarrotPatch.Tests.csproj", "{9F8FF7F2-36EB-4A46-B111-C8D74A29B4D4}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -23,6 +25,14 @@ Global
 		{D82B1BFA-C42E-4B14-8062-020940DDD971}.Release|Any CPU.Build.0 = Release|x64
 		{D82B1BFA-C42E-4B14-8062-020940DDD971}.Release|x64.ActiveCfg = Release|x64
 		{D82B1BFA-C42E-4B14-8062-020940DDD971}.Release|x64.Build.0 = Release|x64
+		{9F8FF7F2-36EB-4A46-B111-C8D74A29B4D4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9F8FF7F2-36EB-4A46-B111-C8D74A29B4D4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9F8FF7F2-36EB-4A46-B111-C8D74A29B4D4}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{9F8FF7F2-36EB-4A46-B111-C8D74A29B4D4}.Debug|x64.Build.0 = Debug|Any CPU
+		{9F8FF7F2-36EB-4A46-B111-C8D74A29B4D4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9F8FF7F2-36EB-4A46-B111-C8D74A29B4D4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9F8FF7F2-36EB-4A46-B111-C8D74A29B4D4}.Release|x64.ActiveCfg = Release|Any CPU
+		{9F8FF7F2-36EB-4A46-B111-C8D74A29B4D4}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
