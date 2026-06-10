@@ -1,18 +1,18 @@
 [
   {
-    "Author": "lapinwhimsical",
-    "Name": "CarrotPatch",
-    "InternalName": "CarrotPatch",
-    "AssemblyVersion": "1.0.1.0",
-    "Description": "A small collection of whimsical tools and experiments for FFXIV.",
+      "Author":  "lapinwhimsical",
+      "Name":  "CarrotPatch",
+      "InternalName":  "CarrotPatch",
+      "AssemblyVersion":  "1.0.2.0",
+      "Description":  "A small collection of whimsical tools and experiments for FFXIV.",
     "Punchline": "Rabbit-sharp senses for whispers and wandering eyes.",
-    "RepoUrl": "https://github.com/lapinwhimsical/CarrotPatch",
-    "ApplicableVersion": "any",
-    "DalamudApiLevel": 15,
-    "IsHide": false,
-    "IsTestingExclusive": false,
-    "DownloadLinkInstall": "https://github.com/lapinwhimsical/CarrotPatch/releases/download/v1.0.1/CarrotPatch.zip",
-    "DownloadLinkUpdate": "https://github.com/lapinwhimsical/CarrotPatch/releases/download/v1.0.1/CarrotPatch.zip",
-    "LastUpdate": "1781035200"
+      "RepoUrl":  "https://github.com/lapinwhimsical/CarrotPatch",
+      "ApplicableVersion":  "any",
+      "DalamudApiLevel":  15,
+      "IsHide":  false,
+      "IsTestingExclusive":  false,
+      "DownloadLinkInstall":  "https://github.com/lapinwhimsical/CarrotPatch/releases/download/v1.0.2/CarrotPatch.zip",
+      "DownloadLinkUpdate":  "https://github.com/lapinwhimsical/CarrotPatch/releases/download/v1.0.2/CarrotPatch.zip",
+      "LastUpdate":  "1781055823"
   }
 ]
