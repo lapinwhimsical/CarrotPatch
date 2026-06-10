@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using Dalamud.Configuration;
 using Dalamud.Plugin;
 
@@ -12,8 +11,6 @@ public sealed class Configuration : IPluginConfiguration
     public int Version { get; set; } = 1;
 
     public bool RabbitEarsEnabled { get; set; } = true;
-
-    public bool TargetAlertsEnabled { get; set; } = true;
 
     public int MaxActiveBeacons { get; set; } = 3;
 
@@ -30,10 +27,6 @@ public sealed class Configuration : IPluginConfiguration
     public float NotificationVolume { get; set; } = 1f;
 
     public float MarkerScale { get; set; } = 1f;
-
-    public List<string> AllowedPlayerNames { get; set; } = [];
-
-    public List<string> BlockedPlayerNames { get; set; } = [];
 
     public bool ShowChatMessage { get; set; } = true;
 

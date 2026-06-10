@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 using CarrotPatch.Features.RabbitEars;
 using Dalamud.Bindings.ImGui;
 
@@ -8,12 +7,10 @@ namespace CarrotPatch.UI;
 public sealed class SettingsWindow
 {
     private readonly Configuration configuration;
-    private readonly RecentSignalsWindow recentSignalsWindow;
 
-    public SettingsWindow(Configuration configuration, RecentSignalsWindow recentSignalsWindow)
+    public SettingsWindow(Configuration configuration)
     {
         this.configuration = configuration;
-        this.recentSignalsWindow = recentSignalsWindow;
     }
 
     public bool IsOpen { get; set; }
@@ -36,22 +33,10 @@ public sealed class SettingsWindow
         this.IsOpen = isOpen;
 
         var enabled = this.configuration.RabbitEarsEnabled;
-        if (ImGui.Checkbox("Enable Rabbit Ears", ref enabled))
+        if (ImGui.Checkbox("Alert when players target me", ref enabled))
         {
             this.configuration.RabbitEarsEnabled = enabled;
             this.configuration.Save();
-        }
-
-        var targetAlertsEnabled = this.configuration.TargetAlertsEnabled;
-        if (ImGui.Checkbox("Alert when players target me", ref targetAlertsEnabled))
-        {
-            this.configuration.TargetAlertsEnabled = targetAlertsEnabled;
-            this.configuration.Save();
-        }
-
-        if (ImGui.Button("Open Recent Signals"))
-        {
-            this.recentSignalsWindow.IsOpen = true;
         }
 
         ImGui.Separator();
@@ -119,10 +104,6 @@ public sealed class SettingsWindow
             this.configuration.Save();
         }
 
-        ImGui.Separator();
-        this.DrawNameFilter("Only alert for names", this.configuration.AllowedPlayerNames, names => this.configuration.AllowedPlayerNames = names);
-        this.DrawNameFilter("Never alert for names", this.configuration.BlockedPlayerNames, names => this.configuration.BlockedPlayerNames = names);
-
         var debugMode = this.configuration.DebugMode;
         if (ImGui.Checkbox("Debug logging", ref debugMode))
         {
@@ -131,15 +112,5 @@ public sealed class SettingsWindow
         }
 
         ImGui.End();
-    }
-
-    private void DrawNameFilter(string label, System.Collections.Generic.List<string> currentNames, Action<System.Collections.Generic.List<string>> setNames)
-    {
-        var text = string.Join(Environment.NewLine, currentNames.Order(StringComparer.OrdinalIgnoreCase));
-        if (ImGui.InputTextMultiline(label, ref text, 4096, new System.Numerics.Vector2(0f, 72f)))
-        {
-            setNames(RabbitEarsFilter.ParseNames(text));
-            this.configuration.Save();
-        }
     }
 }

@@ -70,9 +70,6 @@ public sealed class RabbitEarsService : IDisposable
         if (!TellParser.TryParseIncomingTell(message, localPlayerName, out var tellInfo))
             return;
 
-        if (!RabbitEarsFilter.IsAllowed(tellInfo.SenderName, this.configuration.AllowedPlayerNames, this.configuration.BlockedPlayerNames))
-            return;
-
         this.pluginLog.Information("Rabbit Ears detected tell from {Sender}.", tellInfo.SenderName);
 
         if (localPlayer is null)
@@ -101,7 +98,7 @@ public sealed class RabbitEarsService : IDisposable
             localPlayer,
             DateTime.UtcNow,
             moveToFront: true,
-            isTargeting: this.configuration.TargetAlertsEnabled && IsTargetingLocalPlayer(match, localPlayer),
+            isTargeting: IsTargetingLocalPlayer(match, localPlayer),
             hasTell: true,
             recordTargetingSignal: false);
     }
@@ -160,15 +157,10 @@ public sealed class RabbitEarsService : IDisposable
     private HashSet<ulong> UpdateTargetingBeacons(IGameObject localPlayer, DateTime now)
     {
         var targeterIds = new HashSet<ulong>();
-        if (!this.configuration.TargetAlertsEnabled)
-            return targeterIds;
 
         foreach (var player in this.objectTable.PlayerObjects)
         {
             if (player.GameObjectId == localPlayer.GameObjectId || !IsTargetingLocalPlayer(player, localPlayer))
-                continue;
-
-            if (!RabbitEarsFilter.IsAllowed(player.Name.TextValue, this.configuration.AllowedPlayerNames, this.configuration.BlockedPlayerNames))
                 continue;
 
             targeterIds.Add(player.GameObjectId);

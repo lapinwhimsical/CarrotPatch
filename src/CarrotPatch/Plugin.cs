@@ -10,6 +10,7 @@ namespace CarrotPatch;
 public sealed class Plugin : IDalamudPlugin
 {
     private const string MainCommand = "/carrotpatch";
+    private const string SettingsCommand = "/carrotpatchsettings";
 
     private readonly IDalamudPluginInterface pluginInterface;
     private readonly ICommandManager commandManager;
@@ -41,13 +42,17 @@ public sealed class Plugin : IDalamudPlugin
         this.rabbitEarsService = new RabbitEarsService(chatGui, objectTable, framework, pluginLog, this.configuration, this.notificationSoundPlayer);
         this.rabbitEarsOverlay = new RabbitEarsOverlay(this.rabbitEarsService, objectTable, gameGui, this.configuration);
         this.recentSignalsWindow = new RecentSignalsWindow(this.rabbitEarsService);
-        this.settingsWindow = new SettingsWindow(this.configuration, this.recentSignalsWindow);
+        this.settingsWindow = new SettingsWindow(this.configuration);
 
         this.pluginInterface.UiBuilder.Draw += this.DrawUi;
         this.pluginInterface.UiBuilder.OpenConfigUi += this.OpenConfigUi;
-        this.pluginInterface.UiBuilder.OpenMainUi += this.OpenConfigUi;
+        this.pluginInterface.UiBuilder.OpenMainUi += this.OpenMainUi;
 
-        this.commandManager.AddHandler(MainCommand, new CommandInfo(this.OnCommand)
+        this.commandManager.AddHandler(MainCommand, new CommandInfo(this.OnMainCommand)
+        {
+            HelpMessage = "Open CarrotPatch.",
+        });
+        this.commandManager.AddHandler(SettingsCommand, new CommandInfo(this.OnSettingsCommand)
         {
             HelpMessage = "Open CarrotPatch settings.",
         });
@@ -56,9 +61,10 @@ public sealed class Plugin : IDalamudPlugin
 
     public void Dispose()
     {
+        this.commandManager.RemoveHandler(SettingsCommand);
         this.commandManager.RemoveHandler(MainCommand);
 
-        this.pluginInterface.UiBuilder.OpenMainUi -= this.OpenConfigUi;
+        this.pluginInterface.UiBuilder.OpenMainUi -= this.OpenMainUi;
         this.pluginInterface.UiBuilder.OpenConfigUi -= this.OpenConfigUi;
         this.pluginInterface.UiBuilder.Draw -= this.DrawUi;
 
@@ -66,7 +72,12 @@ public sealed class Plugin : IDalamudPlugin
         this.pluginLog.Information("CarrotPatch unloaded.");
     }
 
-    private void OnCommand(string command, string arguments)
+    private void OnMainCommand(string command, string arguments)
+    {
+        this.recentSignalsWindow.IsOpen = true;
+    }
+
+    private void OnSettingsCommand(string command, string arguments)
     {
         this.settingsWindow.IsOpen = true;
     }
@@ -74,6 +85,11 @@ public sealed class Plugin : IDalamudPlugin
     private void OpenConfigUi()
     {
         this.settingsWindow.IsOpen = true;
+    }
+
+    private void OpenMainUi()
+    {
+        this.recentSignalsWindow.IsOpen = true;
     }
 
     private void DrawUi()

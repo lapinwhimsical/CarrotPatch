@@ -24,7 +24,7 @@ public sealed class RecentSignalsWindow
         var isOpen = this.IsOpen;
         ImGui.SetNextWindowSize(new Vector2(520f, 260f), ImGuiCond.FirstUseEver);
 
-        if (!ImGui.Begin("Recent Signals##carrotpatch", ref isOpen))
+        if (!ImGui.Begin("CarrotPatch##recent-signals", ref isOpen))
         {
             this.IsOpen = isOpen;
             ImGui.End();
