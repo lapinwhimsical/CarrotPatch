@@ -53,7 +53,7 @@ public sealed class RecentSignalsWindow
             var latestSignalKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (var signal in this.rabbitEarsService.RecentSignals)
             {
-                var isLatestForPlayer = latestSignalKeys.Add(GetSignalKey(signal));
+                var isLatestForPlayer = latestSignalKeys.Add(RecentSignalIdentity.GetPlayerKey(signal));
                 if (this.configuration.ShowOnlyLatestSignalPerPlayer && !isLatestForPlayer)
                     continue;
 
@@ -130,11 +130,6 @@ public sealed class RecentSignalsWindow
 
         ImGui.TextColored(ActiveSignalColor, text);
     }
-
-    private static string GetSignalKey(RecentSignal signal)
-        => signal.GameObjectId.HasValue
-            ? $"id:{signal.GameObjectId.Value}"
-            : $"name:{TellParserCore.NormalizeName(signal.SenderName)}@{signal.SenderWorld ?? string.Empty}";
 
     private static string FormatAge(DateTime seenAt)
     {
