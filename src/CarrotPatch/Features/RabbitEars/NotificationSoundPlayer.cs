@@ -1,76 +1,76 @@
 using System;
 using System.IO;
-using System.Runtime.InteropServices;
-using System.Text;
-using Dalamud.Plugin;
+using System.Linq;
+using System.Reflection;
+using System.Threading;
 using Dalamud.Plugin.Services;
+using NAudio.Wave;
 
 namespace CarrotPatch.Features.RabbitEars;
 
-public sealed class NotificationSoundPlayer : IDisposable
+public sealed class NotificationSoundPlayer
 {
-    private const string Alias = "CarrotPatchNotification";
+    private static readonly TimeSpan MinimumInterval = TimeSpan.FromSeconds(1);
 
     private readonly IPluginLog pluginLog;
-    private readonly string soundPath;
+    private readonly Assembly assembly;
+    private DateTime lastPlayedAt = DateTime.MinValue;
 
-    public NotificationSoundPlayer(IDalamudPluginInterface pluginInterface, IPluginLog pluginLog)
+    public NotificationSoundPlayer(IPluginLog pluginLog)
     {
         this.pluginLog = pluginLog;
-        var pluginDirectory = Path.GetDirectoryName(pluginInterface.AssemblyLocation.FullName)
-            ?? pluginInterface.AssemblyLocation.DirectoryName
-            ?? AppContext.BaseDirectory;
-        this.soundPath = Path.Combine(pluginDirectory, "Resources", "notification.mp3");
+        this.assembly = typeof(NotificationSoundPlayer).Assembly;
     }
 
     public void Play()
     {
-        if (!File.Exists(this.soundPath))
-        {
-            this.pluginLog.Warning("CarrotPatch notification sound not found at {Path}.", this.soundPath);
-            return;
-        }
-
-        this.Close();
-        if (SendCommand($"open \"{this.soundPath}\" type mpegvideo alias {Alias}") != 0)
+        var now = DateTime.UtcNow;
+        if (now - this.lastPlayedAt < MinimumInterval)
             return;
 
-        SendCommand($"play {Alias} from 0");
-    }
-
-    public void Dispose()
-    {
-        this.Close();
-    }
-
-    private void Close()
-    {
-        SendCommand($"close {Alias}");
-    }
-
-    private int SendCommand(string command)
-    {
-        var errorBuffer = new StringBuilder(256);
-        var result = MciSendString(command, null, 0, IntPtr.Zero);
-        if (result == 0)
-            return result;
-
-        if (MciGetErrorString(result, errorBuffer, errorBuffer.Capacity))
+        this.lastPlayedAt = now;
+        var thread = new Thread(this.PlayOnBackgroundThread)
         {
-            this.pluginLog.Debug("CarrotPatch notification sound command failed: {Error}", errorBuffer.ToString());
-        }
-        else
-        {
-            this.pluginLog.Debug("CarrotPatch notification sound command failed with MCI error {ErrorCode}.", result);
-        }
-
-        return result;
+            IsBackground = true,
+            Name = "CarrotPatch notification sound",
+        };
+        thread.Start();
     }
 
-    [DllImport("winmm.dll", CharSet = CharSet.Unicode, EntryPoint = "mciSendStringW")]
-    private static extern int MciSendString(string command, StringBuilder? returnValue, int returnLength, IntPtr windowHandle);
+    private void PlayOnBackgroundThread()
+    {
+        try
+        {
+            using var stream = this.OpenNotificationStream();
+            if (stream is null)
+            {
+                this.pluginLog.Warning("CarrotPatch notification sound resource was not found.");
+                return;
+            }
 
-    [DllImport("winmm.dll", CharSet = CharSet.Unicode, EntryPoint = "mciGetErrorStringW")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool MciGetErrorString(int errorCode, StringBuilder errorText, int errorTextLength);
+            using var reader = new Mp3FileReader(stream);
+            using var output = new WaveOutEvent();
+            output.Init(reader);
+            output.Play();
+
+            while (output.PlaybackState == PlaybackState.Playing)
+            {
+                Thread.Sleep(50);
+            }
+        }
+        catch (Exception ex)
+        {
+            this.pluginLog.Warning(ex, "Failed to play CarrotPatch notification sound.");
+        }
+    }
+
+    private Stream? OpenNotificationStream()
+    {
+        var resourceName = this.assembly.GetManifestResourceNames()
+            .FirstOrDefault(name => name.EndsWith("Resources.notification.mp3", StringComparison.Ordinal));
+
+        return resourceName is null
+            ? null
+            : this.assembly.GetManifestResourceStream(resourceName);
+    }
 }
