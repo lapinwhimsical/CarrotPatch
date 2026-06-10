@@ -2,8 +2,8 @@
     "Author":  "lapinwhimsical",
     "Name":  "CarrotPatch",
     "InternalName":  "CarrotPatch",
-    "AssemblyVersion":  "1.0.3.0",
-  "Description":  "A small collection of whimsical tools and experiments for FFXIV.",
-  "Punchline": "Rabbit-sharp senses for whispers and wandering eyes.",
-  "IconUrl": "https://raw.githubusercontent.com/lapinwhimsical/CarrotPatch/main/src/CarrotPatch/Resources/icon.svg"
+    "AssemblyVersion":  "1.0.4.0",
+    "Description":  "A small collection of whimsical tools and experiments for FFXIV.",
+    "Punchline":  "Rabbit-sharp senses for whispers and wandering eyes.",
+    "IconUrl":  "https://raw.githubusercontent.com/lapinwhimsical/CarrotPatch/main/src/CarrotPatch/Resources/icon.svg"
 }
