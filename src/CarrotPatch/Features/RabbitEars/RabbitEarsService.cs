@@ -15,6 +15,7 @@ public sealed class RabbitEarsService : IDisposable
     private readonly IPluginLog pluginLog;
     private readonly Configuration configuration;
     private readonly NotificationSoundPlayer notificationSoundPlayer;
+    private readonly RabbitEarsAlertFilter alertFilter;
     private readonly List<ActiveBeacon> activeBeacons = [];
     private readonly RecentSignalStore recentSignalStore = new();
 
@@ -24,7 +25,8 @@ public sealed class RabbitEarsService : IDisposable
         IFramework framework,
         IPluginLog pluginLog,
         Configuration configuration,
-        NotificationSoundPlayer notificationSoundPlayer)
+        NotificationSoundPlayer notificationSoundPlayer,
+        RabbitEarsAlertFilter alertFilter)
     {
         this.chatGui = chatGui;
         this.objectTable = objectTable;
@@ -32,6 +34,7 @@ public sealed class RabbitEarsService : IDisposable
         this.pluginLog = pluginLog;
         this.configuration = configuration;
         this.notificationSoundPlayer = notificationSoundPlayer;
+        this.alertFilter = alertFilter;
 
         this.chatGui.ChatMessageUnhandled += this.OnChatMessage;
         this.framework.Update += this.OnFrameworkUpdate;
@@ -137,11 +140,25 @@ public sealed class RabbitEarsService : IDisposable
         {
             this.pluginLog.Information("{Sender} not found nearby.", tellInfo.SenderName);
             this.RecordSignal(RabbitEarsSignalType.Tell, tellInfo.SenderName, tellInfo.SenderWorld, null, null, now: DateTime.UtcNow, isVisible: false);
-            if (this.configuration.ShowChatMessage)
+            if (!this.alertFilter.ShouldSuppressAlert(tellInfo.SenderName, tellInfo.SenderWorld, null, localPlayer)
+                && this.configuration.ShowChatMessage)
             {
                 this.chatGui.Print($"Rabbit Ears: Tell from {tellInfo.SenderName}, but they are not currently nearby or visible.");
             }
 
+            return;
+        }
+
+        if (this.alertFilter.ShouldSuppressAlert(tellInfo.SenderName, tellInfo.SenderWorld, match, localPlayer))
+        {
+            this.RecordSignal(
+                RabbitEarsSignalType.Tell,
+                tellInfo.SenderName,
+                tellInfo.SenderWorld,
+                match.GameObjectId,
+                DirectionHelper.Distance(localPlayer.Position, match.Position),
+                now: DateTime.UtcNow,
+                isVisible: true);
             return;
         }
 
@@ -221,6 +238,19 @@ public sealed class RabbitEarsService : IDisposable
             targeterIds.Add(player.GameObjectId);
             var existing = this.FindExistingBeacon(player);
             var isNewTargetingSignal = existing is null || !existing.IsTargeting;
+            if (isNewTargetingSignal && this.alertFilter.ShouldSuppressAlert(player.Name.TextValue, senderWorld: null, player, localPlayer))
+            {
+                this.RecordSignal(
+                    RabbitEarsSignalType.Targeting,
+                    player.Name.TextValue,
+                    senderWorld: null,
+                    player.GameObjectId,
+                    DirectionHelper.Distance(localPlayer.Position, player.Position),
+                    now,
+                    isVisible: true);
+                continue;
+            }
+
             this.UpsertBeacon(
                 player.Name.TextValue,
                 senderWorld: null,

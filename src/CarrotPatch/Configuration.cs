@@ -28,9 +28,17 @@ public sealed class Configuration : IPluginConfiguration
 
     public float MarkerScale { get; set; } = 1f;
 
+    public float OverheadBackgroundOpacity { get; set; } = 0.85f;
+
     public bool ShowChatMessage { get; set; } = true;
 
     public bool ShowOnlyLatestSignalPerPlayer { get; set; } = true;
+
+    public bool SuppressAlertsFromPartyMembers { get; set; }
+
+    public bool SuppressAlertsFromAllianceMembers { get; set; }
+
+    public bool SuppressAlertsFromSelf { get; set; }
 
     public bool DebugMode { get; set; }
 

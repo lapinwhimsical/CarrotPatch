@@ -10,7 +10,6 @@ public sealed class RabbitEarsOverlay
     private static readonly Vector4 MarkerColor = new(1f, 0.9f, 0.1f, 1f);
     private static readonly Vector4 TargetingColor = new(1f, 0.15f, 0.1f, 1f);
     private static readonly Vector4 DisabledColor = new(0.55f, 0.55f, 0.55f, 0.85f);
-    private static readonly Vector4 ShadowColor = new(0f, 0f, 0f, 0.85f);
 
     private readonly RabbitEarsService rabbitEarsService;
     private readonly IObjectTable objectTable;
@@ -62,79 +61,19 @@ public sealed class RabbitEarsOverlay
             return false;
 
         var drawList = ImGui.GetForegroundDrawList();
-        const string TargetingLabel = "TARGETING";
-        const string TellLabel = "TELL";
-        const string MarkerLabel = "MARKER";
-        const string StatusGap = "  ";
-        var statusLine = $"{TargetingLabel}{StatusGap}{TellLabel}{StatusGap}{MarkerLabel}";
         var detailLine = beacon.IsTargeting
             ? $"{MathF.Round(beacon.Distance)}y"
             : $"{MathF.Round(beacon.Distance)}y  {beacon.SecondsRemaining}s";
-        var lines = new[]
-        {
-            statusLine,
+        RabbitEarsMarkerRenderer.Draw(
+            drawList,
+            screenPosition,
             beacon.SenderName,
             detailLine,
-        };
-
-        var maxWidth = 0f;
-        var totalHeight = 0f;
-        foreach (var line in lines)
-        {
-            var size = ImGui.CalcTextSize(line);
-            maxWidth = MathF.Max(maxWidth, size.X);
-            totalHeight += size.Y;
-        }
-
-        var padding = new Vector2(8f, 5f) * scale;
-        var boxMin = new Vector2(screenPosition.X - (maxWidth / 2f) - padding.X, screenPosition.Y - totalHeight - (34f * scale));
-        var boxMax = new Vector2(screenPosition.X + (maxWidth / 2f) + padding.X, boxMin.Y + totalHeight + (padding.Y * 2f));
-        var center = new Vector2(screenPosition.X, boxMax.Y + (9f * scale));
-        var color = ImGui.GetColorU32(MarkerColor);
-        var shadow = ImGui.GetColorU32(ShadowColor);
-        var rounding = 4f * scale;
-
-        drawList.AddRectFilled(boxMin, boxMax, shadow, rounding);
-        drawList.AddRect(boxMin, boxMax, color, rounding, ImDrawFlags.None, 1.5f * scale);
-        drawList.AddTriangleFilled(
-            new Vector2(center.X, center.Y),
-            new Vector2(center.X - (7f * scale), boxMax.Y),
-            new Vector2(center.X + (7f * scale), boxMax.Y),
-            color);
-
-        var cursor = boxMin + padding;
-        var statusSize = ImGui.CalcTextSize(statusLine);
-        var targetingSize = ImGui.CalcTextSize(TargetingLabel);
-        var gapSize = ImGui.CalcTextSize(StatusGap);
-        var tellSize = ImGui.CalcTextSize(TellLabel);
-        var markerSize = ImGui.CalcTextSize(MarkerLabel);
-        var statusStart = new Vector2(screenPosition.X - (statusSize.X / 2f), cursor.Y);
-        drawList.AddText(
-            statusStart,
-            ImGui.GetColorU32(beacon.IsTargeting ? TargetingColor : DisabledColor),
-            TargetingLabel);
-        drawList.AddText(
-            new Vector2(statusStart.X + targetingSize.X + gapSize.X, cursor.Y),
-            ImGui.GetColorU32(beacon.HasTell ? TargetingColor : DisabledColor),
-            TellLabel);
-        drawList.AddText(
-            new Vector2(statusStart.X + targetingSize.X + gapSize.X + tellSize.X + gapSize.X, cursor.Y),
-            ImGui.GetColorU32(beacon.IsManualMarker ? TargetingColor : DisabledColor),
-            MarkerLabel);
-        cursor.Y += statusSize.Y;
-
-        var senderSize = ImGui.CalcTextSize(beacon.SenderName);
-        drawList.AddText(
-            new Vector2(screenPosition.X - (senderSize.X / 2f), cursor.Y),
-            ImGui.GetColorU32(MarkerColor),
-            beacon.SenderName);
-        cursor.Y += senderSize.Y;
-
-        var detailSize = ImGui.CalcTextSize(detailLine);
-        drawList.AddText(
-            new Vector2(screenPosition.X - (detailSize.X / 2f), cursor.Y),
-            ImGui.GetColorU32(MarkerColor),
-            detailLine);
+            beacon.IsTargeting,
+            beacon.HasTell,
+            beacon.IsManualMarker,
+            scale,
+            this.configuration.OverheadBackgroundOpacity);
 
         return true;
     }

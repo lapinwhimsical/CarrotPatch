@@ -17,6 +17,7 @@ public sealed class Plugin : IDalamudPlugin
     private readonly IPluginLog pluginLog;
     private readonly Configuration configuration;
     private readonly NotificationSoundPlayer notificationSoundPlayer;
+    private readonly RabbitEarsAlertFilter rabbitEarsAlertFilter;
     private readonly RabbitEarsService rabbitEarsService;
     private readonly RabbitEarsOverlay rabbitEarsOverlay;
     private readonly RecentSignalsWindow recentSignalsWindow;
@@ -29,6 +30,7 @@ public sealed class Plugin : IDalamudPlugin
         IFramework framework,
         IGameGui gameGui,
         ITargetManager targetManager,
+        IPartyList partyList,
         ICommandManager commandManager,
         IPluginLog pluginLog)
     {
@@ -40,10 +42,11 @@ public sealed class Plugin : IDalamudPlugin
         this.configuration.Initialize(this.pluginInterface);
 
         this.notificationSoundPlayer = new NotificationSoundPlayer(pluginLog);
-        this.rabbitEarsService = new RabbitEarsService(chatGui, objectTable, framework, pluginLog, this.configuration, this.notificationSoundPlayer);
+        this.rabbitEarsAlertFilter = new RabbitEarsAlertFilter(this.configuration, partyList);
+        this.rabbitEarsService = new RabbitEarsService(chatGui, objectTable, framework, pluginLog, this.configuration, this.notificationSoundPlayer, this.rabbitEarsAlertFilter);
         this.rabbitEarsOverlay = new RabbitEarsOverlay(this.rabbitEarsService, objectTable, gameGui, this.configuration);
         this.recentSignalsWindow = new RecentSignalsWindow(this.rabbitEarsService, targetManager, this.configuration);
-        this.settingsWindow = new SettingsWindow(this.configuration, this.rabbitEarsService);
+        this.settingsWindow = new SettingsWindow(this.configuration, this.rabbitEarsService, this.notificationSoundPlayer);
 
         this.pluginInterface.UiBuilder.Draw += this.DrawUi;
         this.pluginInterface.UiBuilder.OpenConfigUi += this.OpenConfigUi;

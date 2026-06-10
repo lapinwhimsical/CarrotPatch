@@ -12,6 +12,8 @@ public static class RabbitEarsOptions
     public const float MaximumNotificationVolume = 1f;
     public const float MinimumMarkerScale = 0.65f;
     public const float MaximumMarkerScale = 1.75f;
+    public const float MinimumOverheadBackgroundOpacity = 0.10f;
+    public const float MaximumOverheadBackgroundOpacity = 1f;
 
     public static int ClampMaxActiveBeacons(int value)
         => Math.Clamp(value, MinimumMaxActiveBeacons, MaximumMaxActiveBeacons);
@@ -24,4 +26,7 @@ public static class RabbitEarsOptions
 
     public static float ClampMarkerScale(float value)
         => float.IsFinite(value) ? Math.Clamp(value, MinimumMarkerScale, MaximumMarkerScale) : 1f;
+
+    public static float ClampOverheadBackgroundOpacity(float value)
+        => float.IsFinite(value) ? Math.Clamp(value, MinimumOverheadBackgroundOpacity, MaximumOverheadBackgroundOpacity) : 0.85f;
 }

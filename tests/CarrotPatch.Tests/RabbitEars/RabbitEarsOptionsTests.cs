@@ -31,4 +31,20 @@ public sealed class RabbitEarsOptionsTests
     {
         Assert.Equal(expected, RabbitEarsOptions.ClampNotificationVolume(value));
     }
+
+    [Theory]
+    [InlineData(-1f, 0.10f)]
+    [InlineData(0.5f, 0.5f)]
+    [InlineData(2f, 1f)]
+    public void ClampOverheadBackgroundOpacity_ClampsToSupportedRange(float value, float expected)
+    {
+        Assert.Equal(expected, RabbitEarsOptions.ClampOverheadBackgroundOpacity(value));
+    }
+
+    [Fact]
+    public void ClampOverheadBackgroundOpacity_UsesDefaultForNonFiniteValues()
+    {
+        Assert.Equal(0.85f, RabbitEarsOptions.ClampOverheadBackgroundOpacity(float.NaN));
+        Assert.Equal(0.85f, RabbitEarsOptions.ClampOverheadBackgroundOpacity(float.PositiveInfinity));
+    }
 }
