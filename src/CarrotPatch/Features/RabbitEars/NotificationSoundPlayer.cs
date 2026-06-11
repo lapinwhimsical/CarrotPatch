@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Threading;
 using Dalamud.Plugin.Services;
 using NAudio.Wave;
+using NAudio.Wave.SampleProviders;
 
 namespace CarrotPatch.Features.RabbitEars;
 
@@ -51,8 +52,7 @@ public sealed class NotificationSoundPlayer
 
             using var reader = new Mp3FileReader(stream);
             using var output = new WaveOutEvent();
-            output.Volume = volume;
-            output.Init(reader);
+            output.Init(CreateVolumeAdjustedSampleProvider(reader.ToSampleProvider(), volume));
             output.Play();
 
             while (output.PlaybackState == PlaybackState.Playing)
@@ -75,4 +75,10 @@ public sealed class NotificationSoundPlayer
             ? null
             : this.assembly.GetManifestResourceStream(resourceName);
     }
+
+    internal static VolumeSampleProvider CreateVolumeAdjustedSampleProvider(ISampleProvider source, float volume)
+        => new(source)
+        {
+            Volume = RabbitEarsOptions.ClampNotificationVolume(volume),
+        };
 }
