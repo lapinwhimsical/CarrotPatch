@@ -10,5 +10,6 @@ public sealed class ConfigurationDefaultsTests
         Assert.Equal(10, ConfigurationDefaults.MaxActiveBeacons);
         Assert.False(ConfigurationDefaults.ShowChatMessage);
         Assert.True(ConfigurationDefaults.ShowOnlyLatestSignalPerPlayer);
+        Assert.False(ConfigurationDefaults.OpenSignalLogOnNewEntry);
     }
 }

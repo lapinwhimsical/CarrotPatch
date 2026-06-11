@@ -112,6 +112,13 @@ public sealed class SettingsWindow
             this.configuration.Save();
         }
 
+        var openSignalLogOnNewEntry = this.configuration.OpenSignalLogOnNewEntry;
+        if (ImGui.Checkbox("Open signal log for new entries", ref openSignalLogOnNewEntry))
+        {
+            this.configuration.OpenSignalLogOnNewEntry = openSignalLogOnNewEntry;
+            this.configuration.Save();
+        }
+
         if (ImGui.Button("Clear signal log"))
         {
             this.rabbitEarsService.ClearRecentSignals();

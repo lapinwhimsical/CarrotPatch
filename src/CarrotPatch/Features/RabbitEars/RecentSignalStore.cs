@@ -10,6 +10,8 @@ public sealed class RecentSignalStore
 
     public IReadOnlyList<RecentSignal> RecentSignals => this.recentSignals;
 
+    public ulong RecentSignalVersion { get; private set; }
+
     public void Record(
         RabbitEarsSignalType type,
         string senderName,
@@ -29,6 +31,7 @@ public sealed class RecentSignalStore
             SeenAt = seenAt,
             IsVisible = isVisible,
         });
+        this.RecentSignalVersion++;
 
         if (this.recentSignals.Count > MaximumSignals)
         {

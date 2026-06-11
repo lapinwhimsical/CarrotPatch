@@ -44,6 +44,8 @@ public sealed class RabbitEarsService : IDisposable
 
     public IReadOnlyList<RecentSignal> RecentSignals => this.recentSignalStore.RecentSignals;
 
+    public ulong RecentSignalVersion => this.recentSignalStore.RecentSignalVersion;
+
     public void ClearRecentSignals()
         => this.recentSignalStore.Clear();
 

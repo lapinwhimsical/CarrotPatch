@@ -36,6 +36,8 @@ public sealed class Configuration : IPluginConfiguration
 
     public bool ShowOnlyLatestSignalPerPlayer { get; set; } = ConfigurationDefaults.ShowOnlyLatestSignalPerPlayer;
 
+    public bool OpenSignalLogOnNewEntry { get; set; } = ConfigurationDefaults.OpenSignalLogOnNewEntry;
+
     public bool SuppressAlertsFromPartyMembers { get; set; }
 
     public bool SuppressAlertsFromAllianceMembers { get; set; }
@@ -58,4 +60,5 @@ public static class ConfigurationDefaults
     public const int MaxActiveBeacons = 10;
     public const bool ShowChatMessage = false;
     public const bool ShowOnlyLatestSignalPerPlayer = true;
+    public const bool OpenSignalLogOnNewEntry = false;
 }

@@ -22,6 +22,7 @@ public sealed class Plugin : IDalamudPlugin
     private readonly RabbitEarsOverlay rabbitEarsOverlay;
     private readonly RecentSignalsWindow recentSignalsWindow;
     private readonly SettingsWindow settingsWindow;
+    private ulong observedRecentSignalVersion;
 
     public Plugin(
         IDalamudPluginInterface pluginInterface,
@@ -98,8 +99,23 @@ public sealed class Plugin : IDalamudPlugin
 
     private void DrawUi()
     {
+        this.OpenRecentSignalsWindowForNewEntries();
         this.rabbitEarsOverlay.Draw();
         this.recentSignalsWindow.Draw();
         this.settingsWindow.Draw();
+    }
+
+    private void OpenRecentSignalsWindowForNewEntries()
+    {
+        var recentSignalVersion = this.rabbitEarsService.RecentSignalVersion;
+        var hasNewRecentSignal = recentSignalVersion > this.observedRecentSignalVersion;
+        this.observedRecentSignalVersion = recentSignalVersion;
+
+        if (this.configuration.OpenSignalLogOnNewEntry
+            && !this.recentSignalsWindow.IsOpen
+            && hasNewRecentSignal)
+        {
+            this.recentSignalsWindow.IsOpen = true;
+        }
     }
 }

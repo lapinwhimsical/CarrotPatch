@@ -21,6 +21,30 @@ public sealed class RecentSignalStoreTests
     }
 
     [Fact]
+    public void Record_IncrementsRecentSignalVersion()
+    {
+        var store = new RecentSignalStore();
+        var now = new DateTime(2026, 6, 10, 12, 0, 0, DateTimeKind.Utc);
+
+        store.Record(RabbitEarsSignalType.Tell, "First Player", null, 1, 10f, now, isVisible: true);
+        store.Record(RabbitEarsSignalType.Targeting, "Second Player", null, 2, 5f, now.AddSeconds(1), isVisible: true);
+
+        Assert.Equal(2UL, store.RecentSignalVersion);
+    }
+
+    [Fact]
+    public void Clear_DoesNotIncrementRecentSignalVersion()
+    {
+        var store = new RecentSignalStore();
+        var now = new DateTime(2026, 6, 10, 12, 0, 0, DateTimeKind.Utc);
+
+        store.Record(RabbitEarsSignalType.Tell, "First Player", null, 1, 10f, now, isVisible: true);
+        store.Clear();
+
+        Assert.Equal(1UL, store.RecentSignalVersion);
+    }
+
+    [Fact]
     public void Record_TrimsHistoryToMaximum()
     {
         var store = new RecentSignalStore();
